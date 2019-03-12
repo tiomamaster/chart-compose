@@ -3,8 +3,10 @@ package com.gmail.tiomamaster.chart
 import android.content.Context
 import android.graphics.*
 import android.os.Bundle
+import android.view.MotionEvent
 import android.view.View
 import androidx.appcompat.app.AppCompatActivity
+import androidx.lifecycle.Transformations.map
 import com.google.gson.Gson
 import java.nio.charset.Charset
 
@@ -54,18 +56,16 @@ class ChartView(context: Context) : View(context) {
 
     private lateinit var colors: List<Int>
 
-    private val paint = Paint().apply {
-        isAntiAlias = true
-        isDither = true
-        style = Paint.Style.STROKE
-        strokeJoin = Paint.Join.ROUND
-        strokeCap = Paint.Cap.ROUND
-        strokeWidth = 2.5f
-    }
+    private val paint = Paint()
     private lateinit var bitmap: Bitmap
     private lateinit var canvas: Canvas
-    private lateinit var paths: List<Path>
     private val bitmapPaint = Paint(Paint.DITHER_FLAG)
+
+    private lateinit var bigChartsPaths: List<Path>
+    private lateinit var smallChartsPaths: List<Path>
+    private lateinit var smallChartsRectangleRect: RectF
+
+    private lateinit var mappedX: List<Float>
 
     override fun onSizeChanged(w: Int, h: Int, oldw: Int, oldh: Int) {
         super.onSizeChanged(w, h, oldw, oldh)
@@ -73,41 +73,54 @@ class ChartView(context: Context) : View(context) {
         bitmap = Bitmap.createBitmap(w, h, Bitmap.Config.ARGB_8888)
         canvas = Canvas(bitmap)
 
-        drawChart(w, h / 2)
-    }
-
-    private fun drawChart(w: Int, h: Int) {
-        val mappedX = x.run {
+        mappedX = x.run {
             val xMin = first()
             val xMax = last()
             val k = w / (xMax - xMin)
             map { fl -> Math.abs((xMax - fl) * k - w) }
         }
 
-        val chatsMaxValues = y.map { it.max()!! }
+        bigChartsPaths = drawChart(0, h / 2, mappedX)
+        val smallChartsTomMargin = 25
+        val smallChartsMaxY = (h / 2) + smallChartsTomMargin
+        val smallChartsHeight = h / 10
+        smallChartsPaths = drawChart(smallChartsMaxY, smallChartsHeight, mappedX)
+        smallChartsRectangleRect = RectF(
+            0f,
+            smallChartsMaxY.toFloat(),
+            w.toFloat(),
+            smallChartsMaxY.toFloat() + smallChartsHeight
+        )
+        invalidate()
+    }
+
+    private fun drawChart(maxY: Int, chartHeight: Int, mappedX: List<Float>): List<Path> {
+        val chatsMaxValues = y.map { (if (hasBounds) it.subList(leftBound, rightBound) else it).max()!! }
         val maxOfAll = chatsMaxValues.max()!!
-        val constraints = chatsMaxValues.map {
-            if (it == maxOfAll) h.toFloat()
-            else it * h / maxOfAll
+        val scales = chatsMaxValues.map {
+            if (it == maxOfAll) chartHeight.toFloat()
+            else it * chartHeight / maxOfAll
         }
 
-        paths = y.mapIndexed { index, ys ->
-            val constraint = constraints[index]
-            val yMin = ys.min()!!
-            val yMax = ys.max()!!
-            Path().apply {
-                mappedX.forEachIndexed { index, fl ->
-                    val k = constraint / (yMax - yMin)
-                    val y = Math.abs((yMax - ys[index]) * k - constraint)
-                    if (index == 0) {
-                        moveTo(fl, y)
-                    } else {
-                        lineTo(fl, h - y)
+        return y.mapIndexed { index, ys ->
+            (if (hasBounds) ys.subList(leftBound, rightBound)
+            else ys).let {boundedYs ->
+                val scale = scales[index]
+                val yMin = boundedYs.min()!!
+                val yMax = boundedYs.max()!!
+                val k = scale / (yMax - yMin)
+                Path().apply {
+                    mappedX.forEachIndexed { i, fl ->
+                        val y = Math.abs((yMax - boundedYs[i]) * k - scale)
+                        if (i == 0) {
+                            moveTo(fl, y)
+                        } else {
+                            lineTo(fl, chartHeight - y + maxY)
+                        }
                     }
                 }
             }
         }
-        invalidate()
     }
 
     override fun onDraw(canvas: Canvas) {
@@ -115,11 +128,67 @@ class ChartView(context: Context) : View(context) {
 
         canvas.drawBitmap(bitmap, 0f, 0f, bitmapPaint)
 
-        paths.forEachIndexed { index, path ->
+        bigChartsPaths.forEachIndexed { index, path ->
             paint.apply {
+                isAntiAlias = true
+                isDither = true
+                style = Paint.Style.STROKE
+                strokeJoin = Paint.Join.ROUND
+                strokeCap = Paint.Cap.ROUND
+                strokeWidth = 2.5f
                 color = colors[index]
             }
             canvas.drawPath(path, paint)
+            canvas.drawPath(smallChartsPaths[index], paint)
         }
+        canvas.drawRect(smallChartsRectangleRect, paint.apply {
+            alpha = 25
+            style = Paint.Style.FILL
+        })
+    }
+
+    private var leftBound = -1
+    private var rightBound = -1
+
+    private val hasBounds get() = leftBound != -1 && rightBound != -1
+
+    override fun onTouchEvent(event: MotionEvent): Boolean {
+        val x = event.x
+        val y = event.y
+
+        when (event.action) {
+            MotionEvent.ACTION_DOWN -> {
+                println("$x $y")
+                println(smallChartsRectangleRect.contains(x, y))
+
+                leftBound = Math.min((mappedX.size * x / width).toInt(), mappedX.lastIndex - 10)
+                rightBound = leftBound + 10
+
+                val boundedMappedX = (if (hasBounds) this.x.subList(leftBound, rightBound) else this.x).run {
+                    val xMin = first()
+                    val xMax = last()
+                    val k = width / (xMax - xMin)
+                    map { fl -> Math.abs((xMax - fl) * k - width) }
+                }
+
+                bigChartsPaths = drawChart(0, height / 2, boundedMappedX)
+                invalidate()
+
+                this.y.forEachIndexed { index, list ->
+                    println(index)
+                    list.subList(leftBound, rightBound).forEach {
+                        print(it)
+                        print(" ")
+                    }
+                    println()
+                }
+                return true
+            }
+            MotionEvent.ACTION_MOVE -> {
+            }
+            MotionEvent.ACTION_UP -> {
+            }
+        }
+        return false
     }
 }
