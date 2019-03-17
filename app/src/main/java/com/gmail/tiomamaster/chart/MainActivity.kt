@@ -6,11 +6,8 @@ import android.os.Bundle
 import android.view.MotionEvent
 import android.view.View
 import androidx.appcompat.app.AppCompatActivity
-import androidx.lifecycle.Transformations.map
 import com.google.gson.Gson
 import java.nio.charset.Charset
-
-private const val TAG = "MainActivity"
 
 class MainActivity : AppCompatActivity() {
 
@@ -77,7 +74,7 @@ class ChartView(context: Context) : View(context) {
             val xMin = first()
             val xMax = last()
             val k = w / (xMax - xMin)
-            map { fl -> Math.abs((xMax - fl) * k - w) }
+            map { fl -> w - (xMax - fl) * k }
         }
 
         bigChartsPaths = drawChart(0, h / 2, mappedX)
@@ -91,31 +88,26 @@ class ChartView(context: Context) : View(context) {
             w.toFloat(),
             smallChartsMaxY.toFloat() + smallChartsHeight
         )
-        invalidate()
+        postInvalidate()
     }
 
     private fun drawChart(maxY: Int, chartHeight: Int, mappedX: List<Float>): List<Path> {
-        val chatsMaxValues = y.map { (if (hasBounds) it.subList(leftBound, rightBound) else it).max()!! }
-        val maxOfAll = chatsMaxValues.max()!!
-        val scales = chatsMaxValues.map {
-            if (it == maxOfAll) chartHeight.toFloat()
-            else it * chartHeight / maxOfAll
-        }
+        val chatsMaxYValues = y.map { (if (hasBounds) it.subList(leftBound, rightBound) else it).max()!! }
+        val chatsMinYValues = y.map { (if (hasBounds) it.subList(leftBound, rightBound) else it).min()!! }
+        val maxYOfAll = chatsMaxYValues.max()!!
+        val minYOfAll = chatsMinYValues.min()!!
+        val kY = chartHeight / (maxYOfAll - minYOfAll)
 
-        return y.mapIndexed { index, ys ->
+        return y.mapIndexed { _, ys ->
             (if (hasBounds) ys.subList(leftBound, rightBound)
-            else ys).let {boundedYs ->
-                val scale = scales[index]
-                val yMin = boundedYs.min()!!
-                val yMax = boundedYs.max()!!
-                val k = scale / (yMax - yMin)
+            else ys).let { boundedYs ->
                 Path().apply {
-                    mappedX.forEachIndexed { i, fl ->
-                        val y = Math.abs((yMax - boundedYs[i]) * k - scale)
+                    mappedX.forEachIndexed { i, x ->
+                        val y = chartHeight - (maxYOfAll - boundedYs[i]) * kY
                         if (i == 0) {
-                            moveTo(fl, y)
+                            moveTo(x, chartHeight - y + maxY)
                         } else {
-                            lineTo(fl, chartHeight - y + maxY)
+                            lineTo(x, chartHeight - y + maxY)
                         }
                     }
                 }
@@ -158,37 +150,25 @@ class ChartView(context: Context) : View(context) {
 
         when (event.action) {
             MotionEvent.ACTION_DOWN -> {
-                println("$x $y")
-                println(smallChartsRectangleRect.contains(x, y))
+            }
+            MotionEvent.ACTION_MOVE -> {
+                if (!smallChartsRectangleRect.contains(x, y)) return false
 
-                leftBound = Math.min((mappedX.size * x / width).toInt(), mappedX.lastIndex - 10)
-                rightBound = leftBound + 10
+                leftBound = Math.min((mappedX.size * x / width).toInt(), mappedX.lastIndex - 50)
+                rightBound = leftBound + 50
 
                 val boundedMappedX = (if (hasBounds) this.x.subList(leftBound, rightBound) else this.x).run {
                     val xMin = first()
                     val xMax = last()
                     val k = width / (xMax - xMin)
-                    map { fl -> Math.abs((xMax - fl) * k - width) }
+                    map { fl -> width - (xMax - fl) * k }
                 }
-
                 bigChartsPaths = drawChart(0, height / 2, boundedMappedX)
-                invalidate()
-
-                this.y.forEachIndexed { index, list ->
-                    println(index)
-                    list.subList(leftBound, rightBound).forEach {
-                        print(it)
-                        print(" ")
-                    }
-                    println()
-                }
-                return true
-            }
-            MotionEvent.ACTION_MOVE -> {
+                postInvalidate()
             }
             MotionEvent.ACTION_UP -> {
             }
         }
-        return false
+        return true
     }
 }
