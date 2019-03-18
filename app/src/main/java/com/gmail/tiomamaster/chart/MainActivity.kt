@@ -3,11 +3,13 @@ package com.gmail.tiomamaster.chart
 import android.content.Context
 import android.graphics.*
 import android.os.Bundle
+import android.util.DisplayMetrics
 import android.view.MotionEvent
 import android.view.View
 import androidx.appcompat.app.AppCompatActivity
 import com.google.gson.Gson
 import java.nio.charset.Charset
+import java.text.SimpleDateFormat
 
 class MainActivity : AppCompatActivity() {
 
@@ -62,7 +64,7 @@ class ChartView(context: Context) : View(context) {
     private lateinit var bigChartsPaths: List<Path>
     private lateinit var smallChartsPaths: List<Path>
 
-    private val boundsRectWidth = 25f
+    private val boundsRectWidth = 8f.convertDpToPx()
     private lateinit var leftBoundRect: RectF
     private lateinit var beforeLeftBoundRect: RectF
     private lateinit var rightBoundRect: RectF
@@ -70,6 +72,11 @@ class ChartView(context: Context) : View(context) {
     private lateinit var betweenBoundsStrokeRect: RectF
 
     private lateinit var mappedX: List<Float>
+
+    private var bigChartsHeight: Int = 0
+
+    private fun Float.convertDpToPx()  =
+        this * resources.displayMetrics.densityDpi / DisplayMetrics.DENSITY_DEFAULT
 
     override fun onSizeChanged(w: Int, h: Int, oldw: Int, oldh: Int) {
         super.onSizeChanged(w, h, oldw, oldh)
@@ -84,53 +91,50 @@ class ChartView(context: Context) : View(context) {
             map { fl -> w - (xMax - fl) * k }
         }
 
-        bigChartsPaths = calcChartPaths(0, h / 2, mappedX)
-        val smallChartsTomMargin = 25
-        val smallChartsMaxY = (h / 2) + smallChartsTomMargin
+        bigChartsHeight = h / 2
+        bigChartsPaths = calcChartPaths(0, bigChartsHeight, mappedX)
+        val smallChartsTopMargin = 32f.convertDpToPx()
+        val smallChartsMaxY = bigChartsHeight + smallChartsTopMargin
         val smallChartsHeight = h / 10
-        smallChartsPaths = calcChartPaths(smallChartsMaxY, smallChartsHeight, mappedX)
-//        smallChartsRect = RectF(
-//            0f,
-//            smallChartsMaxY.toFloat(),
-//            w.toFloat(),
-//            smallChartsMaxY.toFloat() + smallChartsHeight
-//        )
+        smallChartsPaths = calcChartPaths(smallChartsMaxY.toInt(), smallChartsHeight, mappedX)
         leftBoundRect = RectF(
             0f,
-            smallChartsMaxY.toFloat() - strokeWidth,
+            smallChartsMaxY - strokeWidth,
             boundsRectWidth,
-            smallChartsMaxY.toFloat() + smallChartsHeight + strokeWidth
+            smallChartsMaxY + smallChartsHeight + strokeWidth
         )
         beforeLeftBoundRect = RectF(
             0f,
-            smallChartsMaxY.toFloat() - strokeWidth,
+            smallChartsMaxY - strokeWidth,
             leftBoundRect.left,
-            smallChartsMaxY.toFloat() + smallChartsHeight + strokeWidth
+            smallChartsMaxY + smallChartsHeight + strokeWidth
         )
         rightBoundRect = RectF(
             w.toFloat() - boundsRectWidth,
-            smallChartsMaxY.toFloat() - strokeWidth,
+            smallChartsMaxY - strokeWidth,
             w.toFloat(),
-            smallChartsMaxY.toFloat() + smallChartsHeight + strokeWidth
+            smallChartsMaxY + smallChartsHeight + strokeWidth
         )
         afterRightBoundRect = RectF(
             rightBoundRect.right,
-            smallChartsMaxY.toFloat() - strokeWidth,
+            smallChartsMaxY - strokeWidth,
             w.toFloat(),
-            smallChartsMaxY.toFloat() + smallChartsHeight + strokeWidth
+            smallChartsMaxY + smallChartsHeight + strokeWidth
         )
         betweenBoundsStrokeRect = RectF(
             boundsRectWidth,
-            smallChartsMaxY.toFloat(),
+            smallChartsMaxY,
             w.toFloat() - boundsRectWidth,
-            smallChartsMaxY.toFloat() + smallChartsHeight
+            smallChartsMaxY + smallChartsHeight
         )
         postInvalidate()
     }
 
     private fun calcChartPaths(maxY: Int, chartHeight: Int, mappedX: List<Float>): List<Path> {
-        val chatsMaxYValues = y.map { (if (hasBounds) it.subList(leftBound, rightBound) else it).max()!! }
-        val chatsMinYValues = y.map { (if (hasBounds) it.subList(leftBound, rightBound) else it).min()!! }
+        val chatsMaxYValues =
+            y.map { (if (hasBounds) it.subList(leftBound, rightBound) else it).max()!! }
+        val chatsMinYValues =
+            y.map { (if (hasBounds) it.subList(leftBound, rightBound) else it).min()!! }
         val maxYOfAll = chatsMaxYValues.max()!!
         val minYOfAll = chatsMinYValues.min()!!
         val kY = chartHeight / (maxYOfAll - minYOfAll)
@@ -157,13 +161,73 @@ class ChartView(context: Context) : View(context) {
 
         canvas.drawBitmap(bitmap, 0f, 0f, bitmapPaint)
 
+        val formatter = SimpleDateFormat("MMM dd")
+        val start = leftBound.takeUnless { it == -1 }?.let { formatter.format(x[it]) } ?: formatter.format(x[0])
+        val end = rightBound.takeUnless { it == -1 }?.let { formatter.format(x[it - 1]) } ?: formatter.format(x.last())
+        canvas.drawText(start, 4f.convertDpToPx(), bigChartsHeight.toFloat() + 12f.convertDpToPx(), paint.apply {
+            isAntiAlias = true
+            isDither = true
+            style = Paint.Style.FILL
+            strokeJoin = Paint.Join.ROUND
+            strokeCap = Paint.Cap.ROUND
+            strokeWidth = this@ChartView.strokeWidth
+            textSize = 10f.convertDpToPx()
+            textAlign = Paint.Align.LEFT
+            color = Color.GRAY
+        })
+        canvas.drawText(end, width - 4f.convertDpToPx(), bigChartsHeight.toFloat() + 12f.convertDpToPx(), paint.apply {
+            textAlign = Paint.Align.RIGHT
+        })
+
+        canvas.drawLine(
+            0f,
+            bigChartsHeight.toFloat(),
+            width.toFloat(),
+            bigChartsHeight.toFloat(),
+            paint.apply {
+                style = Paint.Style.STROKE
+                color = Color.GRAY
+                strokeWidth = 0.5f
+            }
+        )
+        canvas.drawLine(
+            0f,
+            bigChartsHeight.toFloat() - bigChartsHeight / 6,
+            width.toFloat(),
+            bigChartsHeight.toFloat() - bigChartsHeight / 6,
+            paint
+        )
+        canvas.drawLine(
+            0f,
+            bigChartsHeight.toFloat() - 2 * (bigChartsHeight / 6),
+            width.toFloat(),
+            bigChartsHeight.toFloat() - 2 * (bigChartsHeight / 6),
+            paint
+        )
+        canvas.drawLine(
+            0f,
+            bigChartsHeight.toFloat() - 3 * (bigChartsHeight / 6),
+            width.toFloat(),
+            bigChartsHeight.toFloat() - 3 * (bigChartsHeight / 6),
+            paint
+        )
+        canvas.drawLine(
+            0f,
+            bigChartsHeight.toFloat() - 4 * (bigChartsHeight / 6),
+            width.toFloat(),
+            bigChartsHeight.toFloat() - 4 * (bigChartsHeight / 6),
+            paint
+        )
+        canvas.drawLine(
+            0f,
+            bigChartsHeight.toFloat() - 5 * (bigChartsHeight / 6),
+            width.toFloat(),
+            bigChartsHeight.toFloat() - 5 * (bigChartsHeight / 6),
+            paint
+        )
+
         bigChartsPaths.forEachIndexed { index, path ->
             paint.apply {
-                isAntiAlias = true
-                isDither = true
-                style = Paint.Style.STROKE
-                strokeJoin = Paint.Join.ROUND
-                strokeCap = Paint.Cap.ROUND
                 strokeWidth = this@ChartView.strokeWidth
                 color = colors[index]
             }
@@ -172,25 +236,34 @@ class ChartView(context: Context) : View(context) {
         }
 
         canvas.drawRect(leftBoundRect, paint.apply {
+            color = colors[3]
             alpha = 100
             style = Paint.Style.FILL
+            strokeWidth = this@ChartView.strokeWidth
         })
+        canvas.drawRect(rightBoundRect, paint)
         canvas.drawRect(beforeLeftBoundRect, paint.apply {
             alpha = 50
             style = Paint.Style.FILL
         })
-        canvas.drawRect(rightBoundRect, paint.apply {
-            alpha = 100
-            style = Paint.Style.FILL
-        })
-        canvas.drawRect(afterRightBoundRect, paint.apply {
-            alpha = 50
-            style = Paint.Style.FILL
-        })
-        canvas.drawRect(betweenBoundsStrokeRect, paint.apply {
-            alpha = 100
-            style = Paint.Style.STROKE
-        })
+        canvas.drawRect(afterRightBoundRect, paint)
+        canvas.drawLine(
+            leftBoundRect.right,
+            leftBoundRect.top + strokeWidth / 2,
+            rightBoundRect.left,
+            rightBoundRect.top + strokeWidth / 2,
+            paint.apply {
+                alpha = 100
+                style = Paint.Style.FILL_AND_STROKE
+            }
+        )
+        canvas.drawLine(
+            leftBoundRect.right,
+            leftBoundRect.bottom - strokeWidth / 2,
+            rightBoundRect.left,
+            rightBoundRect.bottom - strokeWidth / 2,
+            paint
+        )
     }
 
     private var leftBound = -1
