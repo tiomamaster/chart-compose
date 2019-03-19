@@ -55,6 +55,7 @@ class ChartView(context: Context) : View(context) {
 
     private lateinit var colors: List<Int>
 
+    private val formatter = SimpleDateFormat("MMM dd, YYYY")
     private val paint = Paint()
     private val strokeWidth = 2.5f
     private lateinit var bitmap: Bitmap
@@ -161,10 +162,7 @@ class ChartView(context: Context) : View(context) {
 
         canvas.drawBitmap(bitmap, 0f, 0f, bitmapPaint)
 
-        val formatter = SimpleDateFormat("MMM dd")
-        val start = leftBound.takeUnless { it == -1 }?.let { formatter.format(x[it]) } ?: formatter.format(x[0])
-        val end = rightBound.takeUnless { it == -1 }?.let { formatter.format(x[it - 1]) } ?: formatter.format(x.last())
-        canvas.drawText(start, 4f.convertDpToPx(), bigChartsHeight.toFloat() + 12f.convertDpToPx(), paint.apply {
+        paint.apply {
             isAntiAlias = true
             isDither = true
             style = Paint.Style.FILL
@@ -174,10 +172,52 @@ class ChartView(context: Context) : View(context) {
             textSize = 10f.convertDpToPx()
             textAlign = Paint.Align.LEFT
             color = Color.GRAY
-        })
-        canvas.drawText(end, width - 4f.convertDpToPx(), bigChartsHeight.toFloat() + 12f.convertDpToPx(), paint.apply {
-            textAlign = Paint.Align.RIGHT
-        })
+        }
+        val sampleText = "Aug 17, 2019"
+        val textRect = Rect()
+        paint.getTextBounds(sampleText, 0, sampleText.lastIndex, textRect)
+        textRect.apply {
+            left += 4f.convertDpToPx().toInt()
+            right += 4f.convertDpToPx().toInt()
+        }
+        val maxCountOfXLabels = width / (textRect.width() + 16f.convertDpToPx()).toInt()
+        val xLabelsCoordinatesToIndexes = List(maxCountOfXLabels) {
+            when (it) {
+                0 -> {
+                    4f.convertDpToPx() to textRect.centerX()
+                }
+                maxCountOfXLabels - 1 -> {
+                    textRect.apply {
+                        val w = width()
+                        right = width - 4f.convertDpToPx().toInt()
+                        left = right - w
+                    }
+                    width - 4f.convertDpToPx() to
+                        if (hasBounds) rightBound - leftBound - (width - textRect.centerX()) else (width - textRect.centerX())
+                }
+                else -> {
+                    val i = if (hasBounds) {
+                        ((rightBound - leftBound) / maxCountOfXLabels) * it
+                    } else {
+                        (x.size / maxCountOfXLabels) * it
+                    }
+                    (boundedMappedX?.get(i) ?: mappedX[i]) to i
+                }
+            }
+        }
+        println(xLabelsCoordinatesToIndexes[maxCountOfXLabels - 1])
+        xLabelsCoordinatesToIndexes.forEachIndexed { i, p ->
+            if (i == maxCountOfXLabels - 1) paint.apply { textAlign = Paint.Align.RIGHT }
+            val text = formatter.format((if (hasBounds) x.subList(leftBound, rightBound) else x)[p.second])
+            canvas.drawText(text, p.first, bigChartsHeight.toFloat() + 12f.convertDpToPx(), paint)
+        }
+
+//        val start = leftBound.takeUnless { it == -1 }?.let { formatter.format(x[it]) } ?: formatter.format(x[0])
+//        val end = rightBound.takeUnless { it == -1 }?.let { formatter.format(x[it - 1]) } ?: formatter.format(x.last())
+//        canvas.drawText(start, 4f.convertDpToPx(), bigChartsHeight.toFloat() + 12f.convertDpToPx(), paint)
+//        canvas.drawText(end, width - 4f.convertDpToPx(), bigChartsHeight.toFloat() + 12f.convertDpToPx(), paint.apply {
+//            textAlign = Paint.Align.RIGHT
+//        })
 
         canvas.drawLine(
             0f,
@@ -353,17 +393,19 @@ class ChartView(context: Context) : View(context) {
         return true
     }
 
+    private var boundedMappedX: List<Float>? = null
+
     private fun recalculateAndPostInvalidate() {
         leftBound = mappedX.size * leftBoundRect.left.toInt() / width
         rightBound = mappedX.size * rightBoundRect.right.toInt() / width
 
-        val boundedMappedX = (if (hasBounds) this.x.subList(leftBound, rightBound) else this.x).run {
+        boundedMappedX = (if (hasBounds) this.x.subList(leftBound, rightBound) else this.x).run {
             val xMin = first()
             val xMax = last()
             val k = width / (xMax - xMin)
             map { fl -> width - (xMax - fl) * k }
         }
-        bigChartsPaths = calcChartPaths(0, height / 2, boundedMappedX)
+        bigChartsPaths = calcChartPaths(0, height / 2, boundedMappedX!!)
         postInvalidate()
     }
 }
