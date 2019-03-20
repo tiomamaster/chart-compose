@@ -10,6 +10,7 @@ import androidx.appcompat.app.AppCompatActivity
 import com.google.gson.Gson
 import java.nio.charset.Charset
 import java.text.SimpleDateFormat
+import kotlin.math.max
 
 class MainActivity : AppCompatActivity() {
 
@@ -55,8 +56,16 @@ class ChartView(context: Context) : View(context) {
 
     private lateinit var colors: List<Int>
 
-    private val formatter = SimpleDateFormat("MMM dd, YYYY")
-    private val paint = Paint()
+    private val formatter = SimpleDateFormat("MMM dd")
+    private val paint = Paint().apply {
+        isAntiAlias = true
+        isDither = true
+        style = Paint.Style.FILL
+        strokeJoin = Paint.Join.ROUND
+        strokeCap = Paint.Cap.ROUND
+        strokeWidth = this@ChartView.strokeWidth
+        textSize = 10f.convertDpToPx()
+    }
     private val strokeWidth = 2.5f
     private lateinit var bitmap: Bitmap
     private lateinit var canvas: Canvas
@@ -75,6 +84,9 @@ class ChartView(context: Context) : View(context) {
     private lateinit var mappedX: List<Float>
 
     private var bigChartsHeight: Int = 0
+
+    private lateinit var xLabelsIndexes: List<Int>
+    private var maxCountOfXLabels = 0
 
     private fun Float.convertDpToPx()  =
         this * resources.displayMetrics.densityDpi / DisplayMetrics.DENSITY_DEFAULT
@@ -128,6 +140,28 @@ class ChartView(context: Context) : View(context) {
             w.toFloat() - boundsRectWidth,
             smallChartsMaxY + smallChartsHeight
         )
+
+        val sampleText = "Aug 17"
+        val textRect = Rect()
+        paint.getTextBounds(sampleText, 0, sampleText.lastIndex, textRect)
+//        textRect.apply {
+//            left += 4f.convertDpToPx().toInt()
+//            right += 4f.convertDpToPx().toInt()
+//        }
+        maxCountOfXLabels = width / (textRect.width() + 36f.convertDpToPx()).toInt()
+        val first = textRect.centerX() * x.size / w
+        xLabelsIndexes = List(maxCountOfXLabels) {
+            when (it) {
+                0 -> {
+                    (textRect.centerX() * x.lastIndex / w).toInt()
+                }
+                else -> {
+                    (((w / maxCountOfXLabels) * it + textRect.centerX()) * x.lastIndex / w).toInt()
+//                    (x.size / maxCountOfXLabels) * it
+                }
+            }
+        }
+
         postInvalidate()
     }
 
@@ -163,61 +197,15 @@ class ChartView(context: Context) : View(context) {
         canvas.drawBitmap(bitmap, 0f, 0f, bitmapPaint)
 
         paint.apply {
-            isAntiAlias = true
-            isDither = true
-            style = Paint.Style.FILL
-            strokeJoin = Paint.Join.ROUND
-            strokeCap = Paint.Cap.ROUND
-            strokeWidth = this@ChartView.strokeWidth
-            textSize = 10f.convertDpToPx()
             textAlign = Paint.Align.LEFT
             color = Color.GRAY
         }
-        val sampleText = "Aug 17, 2019"
-        val textRect = Rect()
-        paint.getTextBounds(sampleText, 0, sampleText.lastIndex, textRect)
-        textRect.apply {
-            left += 4f.convertDpToPx().toInt()
-            right += 4f.convertDpToPx().toInt()
-        }
-        val maxCountOfXLabels = width / (textRect.width() + 16f.convertDpToPx()).toInt()
-        val xLabelsCoordinatesToIndexes = List(maxCountOfXLabels) {
-            when (it) {
-                0 -> {
-                    4f.convertDpToPx() to textRect.centerX()
-                }
-                maxCountOfXLabels - 1 -> {
-                    textRect.apply {
-                        val w = width()
-                        right = width - 4f.convertDpToPx().toInt()
-                        left = right - w
-                    }
-                    width - 4f.convertDpToPx() to
-                        if (hasBounds) rightBound - leftBound - (width - textRect.centerX()) else (width - textRect.centerX())
-                }
-                else -> {
-                    val i = if (hasBounds) {
-                        ((rightBound - leftBound) / maxCountOfXLabels) * it
-                    } else {
-                        (x.size / maxCountOfXLabels) * it
-                    }
-                    (boundedMappedX?.get(i) ?: mappedX[i]) to i
-                }
-            }
-        }
-        println(xLabelsCoordinatesToIndexes[maxCountOfXLabels - 1])
-        xLabelsCoordinatesToIndexes.forEachIndexed { i, p ->
-            if (i == maxCountOfXLabels - 1) paint.apply { textAlign = Paint.Align.RIGHT }
-            val text = formatter.format((if (hasBounds) x.subList(leftBound, rightBound) else x)[p.second])
-            canvas.drawText(text, p.first, bigChartsHeight.toFloat() + 12f.convertDpToPx(), paint)
-        }
 
-//        val start = leftBound.takeUnless { it == -1 }?.let { formatter.format(x[it]) } ?: formatter.format(x[0])
-//        val end = rightBound.takeUnless { it == -1 }?.let { formatter.format(x[it - 1]) } ?: formatter.format(x.last())
-//        canvas.drawText(start, 4f.convertDpToPx(), bigChartsHeight.toFloat() + 12f.convertDpToPx(), paint)
-//        canvas.drawText(end, width - 4f.convertDpToPx(), bigChartsHeight.toFloat() + 12f.convertDpToPx(), paint.apply {
-//            textAlign = Paint.Align.RIGHT
-//        })
+        xLabelsIndexes.forEachIndexed { i, p ->
+            val text = formatter.format((if (hasBounds) x.subList(leftBound, rightBound) else x)[p])
+            val xCoordinate = (if (hasBounds) boundedMappedX!! else mappedX)[p]
+            canvas.drawText(text, xCoordinate, bigChartsHeight.toFloat() + 12f.convertDpToPx(), paint)
+        }
 
         canvas.drawLine(
             0f,
