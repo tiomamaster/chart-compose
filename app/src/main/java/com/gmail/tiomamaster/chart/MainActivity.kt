@@ -10,7 +10,6 @@ import androidx.appcompat.app.AppCompatActivity
 import com.google.gson.Gson
 import java.nio.charset.Charset
 import java.text.SimpleDateFormat
-import kotlin.math.max
 
 class MainActivity : AppCompatActivity() {
 
@@ -57,16 +56,17 @@ class ChartView(context: Context) : View(context) {
     private lateinit var colors: List<Int>
 
     private val formatter = SimpleDateFormat("MMM dd")
+    private val strokeWidth = 2.5f
+    private val textStrokeWidth = 0f
     private val paint = Paint().apply {
         isAntiAlias = true
         isDither = true
         style = Paint.Style.FILL
         strokeJoin = Paint.Join.ROUND
         strokeCap = Paint.Cap.ROUND
-        strokeWidth = this@ChartView.strokeWidth
+        strokeWidth = this@ChartView.textStrokeWidth
         textSize = 10f.convertDpToPx()
     }
-    private val strokeWidth = 2.5f
     private lateinit var bitmap: Bitmap
     private lateinit var canvas: Canvas
     private val bitmapPaint = Paint(Paint.DITHER_FLAG)
@@ -85,11 +85,13 @@ class ChartView(context: Context) : View(context) {
 
     private var bigChartsHeight: Int = 0
 
-    private lateinit var xLabelsIndexes: List<Int>
+    private lateinit var xLabelsIndexes: MutableList<Int>
     private var maxCountOfXLabels = 0
 
-    private fun Float.convertDpToPx()  =
+    private fun Float.convertDpToPx() =
         this * resources.displayMetrics.densityDpi / DisplayMetrics.DENSITY_DEFAULT
+
+    private lateinit var textRect: Rect
 
     override fun onSizeChanged(w: Int, h: Int, oldw: Int, oldh: Int) {
         super.onSizeChanged(w, h, oldw, oldh)
@@ -142,22 +144,16 @@ class ChartView(context: Context) : View(context) {
         )
 
         val sampleText = "Aug 17"
-        val textRect = Rect()
+        textRect = Rect()
         paint.getTextBounds(sampleText, 0, sampleText.lastIndex, textRect)
-//        textRect.apply {
-//            left += 4f.convertDpToPx().toInt()
-//            right += 4f.convertDpToPx().toInt()
-//        }
         maxCountOfXLabels = width / (textRect.width() + 36f.convertDpToPx()).toInt()
-        val first = textRect.centerX() * x.size / w
-        xLabelsIndexes = List(maxCountOfXLabels) {
+        xLabelsIndexes = MutableList(maxCountOfXLabels) {
             when (it) {
                 0 -> {
-                    (textRect.centerX() * x.lastIndex / w).toInt()
+                    (textRect.centerX() * x.lastIndex / w)
                 }
                 else -> {
-                    (((w / maxCountOfXLabels) * it + textRect.centerX()) * x.lastIndex / w).toInt()
-//                    (x.size / maxCountOfXLabels) * it
+                    (((w / maxCountOfXLabels) * it + textRect.centerX()) * x.lastIndex / w)
                 }
             }
         }
@@ -197,14 +193,19 @@ class ChartView(context: Context) : View(context) {
         canvas.drawBitmap(bitmap, 0f, 0f, bitmapPaint)
 
         paint.apply {
-            textAlign = Paint.Align.LEFT
+            strokeWidth = textStrokeWidth
             color = Color.GRAY
         }
 
-        xLabelsIndexes.forEachIndexed { i, p ->
-            val text = formatter.format((if (hasBounds) x.subList(leftBound, rightBound) else x)[p])
-            val xCoordinate = (if (hasBounds) boundedMappedX!! else mappedX)[p]
-            canvas.drawText(text, xCoordinate, bigChartsHeight.toFloat() + 12f.convertDpToPx(), paint)
+        xLabelsIndexes.forEach { i ->
+            val text = formatter.format((if (hasBounds) x.subList(leftBound, rightBound) else x)[i])
+            val xCoordinate = (if (hasBounds) boundedMappedX!! else mappedX)[i]
+            canvas.drawText(
+                text,
+                xCoordinate,
+                bigChartsHeight.toFloat() + 12f.convertDpToPx(),
+                paint
+            )
         }
 
         canvas.drawLine(
@@ -304,7 +305,8 @@ class ChartView(context: Context) : View(context) {
     private var betweenBoundsClicked = false
         set(value) {
             field = value
-            betweenBoundsStrokeRectWidth = betweenBoundsStrokeRect.right - betweenBoundsStrokeRect.left
+            betweenBoundsStrokeRectWidth =
+                betweenBoundsStrokeRect.right - betweenBoundsStrokeRect.left
         }
     private var betweenBoundsStrokeRectWidth = 0f
     private var prevX = 0f
@@ -322,7 +324,10 @@ class ChartView(context: Context) : View(context) {
             }
             MotionEvent.ACTION_MOVE -> {
                 if (leftBoundClicked) {
-                    val left = Math.min(Math.max(x - boundsRectWidth / 2, 0f), rightBoundRect.left - boundsRectWidth)
+                    val left = Math.min(
+                        Math.max(x - boundsRectWidth / 2, 0f),
+                        rightBoundRect.left - boundsRectWidth
+                    )
                     val right = left + boundsRectWidth
                     leftBoundRect.left = left
                     leftBoundRect.right = right
@@ -333,7 +338,10 @@ class ChartView(context: Context) : View(context) {
                     recalculateAndPostInvalidate()
                 }
                 if (rightBoundClicked) {
-                    val left = Math.max(Math.min(x - boundsRectWidth / 2, width - boundsRectWidth), leftBoundRect.right)
+                    val left = Math.max(
+                        Math.min(x - boundsRectWidth / 2, width - boundsRectWidth),
+                        leftBoundRect.right
+                    )
                     val right = left + boundsRectWidth
                     rightBoundRect.left = left
                     rightBoundRect.right = right
@@ -348,8 +356,10 @@ class ChartView(context: Context) : View(context) {
                     prevX = x
                     when {
                         d > 0 && rightBoundRect.right < width || d < 0 && leftBoundRect.left > 0 -> {
-                            val betweenLeft = Math.max(betweenBoundsStrokeRect.left + d, boundsRectWidth)
-                            val betweenRight = Math.min(betweenBoundsStrokeRect.right + d, width - boundsRectWidth)
+                            val betweenLeft =
+                                Math.max(betweenBoundsStrokeRect.left + d, boundsRectWidth)
+                            val betweenRight =
+                                Math.min(betweenBoundsStrokeRect.right + d, width - boundsRectWidth)
                             if (betweenRight - betweenLeft < betweenBoundsStrokeRectWidth) return false
                             betweenBoundsStrokeRect.left = betweenLeft
                             betweenBoundsStrokeRect.right = betweenRight
@@ -384,8 +394,31 @@ class ChartView(context: Context) : View(context) {
     private var boundedMappedX: List<Float>? = null
 
     private fun recalculateAndPostInvalidate() {
-        leftBound = mappedX.size * leftBoundRect.left.toInt() / width
-        rightBound = mappedX.size * rightBoundRect.right.toInt() / width
+        val newLeft = mappedX.size * leftBoundRect.left.toInt() / width
+        val d = leftBound - newLeft
+        leftBound = newLeft
+        val newRight = mappedX.size * rightBoundRect.right.toInt() / width
+        rightBound = newRight
+
+        if (betweenBoundsClicked) {
+            for (i in xLabelsIndexes.indices) {
+                var newIndex = xLabelsIndexes[i] + d
+                if (newIndex < 0) newIndex = rightBound - leftBound - 1/*(((width / maxCountOfXLabels) * (maxCountOfXLabels - 1) + textRect.centerX()) * (rightBound - leftBound - 1) / width)*/
+                if (newIndex > rightBound - leftBound - 1 /*(((width / maxCountOfXLabels) * (maxCountOfXLabels - 1) + textRect.centerX()) * (rightBound - leftBound - 1) / width)*/) newIndex = 0 /*(textRect.centerX() * (rightBound - leftBound - 1) / width)*/
+                xLabelsIndexes[i] = newIndex
+            }
+        } else {
+            xLabelsIndexes = MutableList(maxCountOfXLabels) {
+                when (it) {
+                    0 -> {
+                        (textRect.centerX() * (rightBound - leftBound - 1) / width)
+                    }
+                    else -> {
+                        (((width / maxCountOfXLabels) * it + textRect.centerX()) * (rightBound - leftBound - 1) / width)
+                    }
+                }
+            }
+        }
 
         boundedMappedX = (if (hasBounds) this.x.subList(leftBound, rightBound) else this.x).run {
             val xMin = first()
