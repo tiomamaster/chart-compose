@@ -32,6 +32,7 @@ class ChartView(context: Context) : View(context) {
         set(value) {
             field = value
             x = (field?.columns?.get(0) as Iterable<*>).drop(1) as List<Float>
+            rightBound = x.size
             field?.columns?.drop(1)?.run {
                 val y = mutableListOf<List<Float>>()
                 forEach {
@@ -85,7 +86,8 @@ class ChartView(context: Context) : View(context) {
 
     private var bigChartsHeight: Int = 0
 
-    private lateinit var xLabelsIndexes: MutableList<Int>
+    //    private lateinit var xLabelsIndexes: MutableList<Int>
+    private lateinit var xLabels: MutableList<XLabel>
     private var maxCountOfXLabels = 0
 
     private fun Float.convertDpToPx() =
@@ -146,17 +148,19 @@ class ChartView(context: Context) : View(context) {
         val sampleText = "Aug 17"
         textRect = Rect()
         paint.getTextBounds(sampleText, 0, sampleText.lastIndex, textRect)
-        maxCountOfXLabels = width / (textRect.width() + 36f.convertDpToPx()).toInt()
-        xLabelsIndexes = MutableList(maxCountOfXLabels) {
-            when (it) {
-                0 -> {
-                    (textRect.centerX() * x.lastIndex / w)
-                }
-                else -> {
-                    (((w / maxCountOfXLabels) * it + textRect.centerX()) * x.lastIndex / w)
-                }
-            }
+        maxCountOfXLabels = width / (textRect.width() * 2)
+        val textBounds = List(maxCountOfXLabels) {
+            if (it == 0) w / maxCountOfXLabels.toFloat()
+            else w / maxCountOfXLabels * (it + 1).toFloat()
         }
+        xLabels = textBounds.map {
+            val lBound = it - w / maxCountOfXLabels
+            val rBound = it
+            val center = (rBound - lBound) / 2 + lBound
+            val c = center - (textRect.width() / 2)
+            val i = center * x.lastIndex / w
+            XLabel(c, i.toInt(), lBound, rBound)
+        }.toMutableList()
 
         postInvalidate()
     }
@@ -197,16 +201,67 @@ class ChartView(context: Context) : View(context) {
             color = Color.GRAY
         }
 
-        xLabelsIndexes.forEach { i ->
-            val text = formatter.format((if (hasBounds) x.subList(leftBound, rightBound) else x)[i])
-            val xCoordinate = (if (hasBounds) boundedMappedX!! else mappedX)[i]
+        xLabels.forEach { l ->
+            val x = (if (hasBounds) x.subList(leftBound, rightBound) else x)
+            if (l.index > x.lastIndex) return@forEach
+            val text = formatter.format(x[l.index])
+            paint.apply { alpha = l.alpha }
             canvas.drawText(
                 text,
-                xCoordinate,
+                l.coordinate,
                 bigChartsHeight.toFloat() + 12f.convertDpToPx(),
                 paint
             )
         }
+//        xLabelsFadeIn.forEach { l ->
+//            val x = (if (hasBounds) x.subList(leftBound, rightBound) else x)
+//            if (l.index > x.lastIndex) return@forEach
+//            val text = formatter.format(x[l.index])
+////            val xCoordinate = (if (hasBounds) boundedMappedX!! else mappedX)[p]
+//            canvas.drawText(
+//                text,
+//                l.coordinate,
+//                bigChartsHeight.toFloat() + 12f.convertDpToPx(),
+//                paint
+//            )
+//        }
+//        xLabelsFadeIn.forEach { l ->
+//            val x = (if (hasBounds) x.subList(leftBound, rightBound) else x)
+//            if (l.index > x.lastIndex) return@forEach
+//            val text = formatter.format(x[l.index])
+//            paint.apply { alpha = l.alpha }
+//            canvas.drawText(
+//                text,
+//                l.coordinate,
+//                bigChartsHeight.toFloat() + 12f.convertDpToPx(),
+//                paint
+//            )
+//        }
+//        xLabelsFadeOut.forEach { l ->
+//            val x = (if (hasBounds) x.subList(leftBound, rightBound) else x)
+//            if (l.index > x.lastIndex) return@forEach
+//            val text = formatter.format(x[l.index])
+//            paint.apply { alpha = l.alpha }
+//            canvas.drawText(
+//                text,
+//                l.coordinate,
+//                bigChartsHeight.toFloat() + 12f.convertDpToPx(),
+//                paint
+//            )
+//        }
+
+//        xLabels1.forEach { p ->
+//            val x = (if (hasBounds) x.subList(leftBound, rightBound) else x)
+//            if (p.index > x.lastIndex) return@forEach
+//            val text = formatter.format(x[p.index])
+////            val xCoordinate = (if (hasBounds) boundedMappedX!! else mappedX)[p]
+//            canvas.drawText(
+//                text,
+//                p.coordinate,
+//                bigChartsHeight.toFloat() + 12f.convertDpToPx(),
+//                paint
+//            )
+//        }
 
         canvas.drawLine(
             0f,
@@ -295,7 +350,7 @@ class ChartView(context: Context) : View(context) {
         )
     }
 
-    private var leftBound = -1
+    private var leftBound = 0
     private var rightBound = -1
 
     private val hasBounds get() = leftBound != -1 && rightBound != -1
@@ -323,6 +378,8 @@ class ChartView(context: Context) : View(context) {
                 prevX = x
             }
             MotionEvent.ACTION_MOVE -> {
+                val d = x - prevX
+                prevX = x
                 if (leftBoundClicked) {
                     val left = Math.min(
                         Math.max(x - boundsRectWidth / 2, 0f),
@@ -335,7 +392,7 @@ class ChartView(context: Context) : View(context) {
                     beforeLeftBoundRect.right = leftBoundRect.left
                     betweenBoundsStrokeRect.left = leftBoundRect.right
 
-                    recalculateAndPostInvalidate()
+                    recalculateAndPostInvalidate(d)
                 }
                 if (rightBoundClicked) {
                     val left = Math.max(
@@ -349,11 +406,9 @@ class ChartView(context: Context) : View(context) {
                     afterRightBoundRect.left = rightBoundRect.right
                     betweenBoundsStrokeRect.right = rightBoundRect.left
 
-                    recalculateAndPostInvalidate()
+                    recalculateAndPostInvalidate(d)
                 }
                 if (betweenBoundsClicked) {
-                    val d = x - prevX
-                    prevX = x
                     when {
                         d > 0 && rightBoundRect.right < width || d < 0 && leftBoundRect.left > 0 -> {
                             val betweenLeft =
@@ -377,7 +432,7 @@ class ChartView(context: Context) : View(context) {
                             beforeLeftBoundRect.right = leftBoundRect.left
                             afterRightBoundRect.left = rightBoundRect.right
 
-                            recalculateAndPostInvalidate()
+                            recalculateAndPostInvalidate(d)
                         }
                     }
                 }
@@ -386,6 +441,7 @@ class ChartView(context: Context) : View(context) {
                 leftBoundClicked = false
                 rightBoundClicked = false
                 betweenBoundsClicked = false
+                index = -1
             }
         }
         return true
@@ -393,32 +449,24 @@ class ChartView(context: Context) : View(context) {
 
     private var boundedMappedX: List<Float>? = null
 
-    private fun recalculateAndPostInvalidate() {
+//    private var realD: Float = 0f
+
+    private var index = -1
+
+    private var xLabels1: MutableList<XLabel> = mutableListOf()
+
+    private var xLabelsFadeIn: MutableList<XLabel> = mutableListOf()
+    private var xLabelsFadeOut: MutableList<XLabel> = mutableListOf()
+
+    private fun recalculateAndPostInvalidate(dd: Float) {
         val newLeft = mappedX.size * leftBoundRect.left.toInt() / width
-        val d = leftBound - newLeft
+        var d = leftBound - newLeft
         leftBound = newLeft
         val newRight = mappedX.size * rightBoundRect.right.toInt() / width
-        rightBound = newRight
-
-        if (betweenBoundsClicked) {
-            for (i in xLabelsIndexes.indices) {
-                var newIndex = xLabelsIndexes[i] + d
-                if (newIndex < 0) newIndex = rightBound - leftBound - 1/*(((width / maxCountOfXLabels) * (maxCountOfXLabels - 1) + textRect.centerX()) * (rightBound - leftBound - 1) / width)*/
-                if (newIndex > rightBound - leftBound - 1 /*(((width / maxCountOfXLabels) * (maxCountOfXLabels - 1) + textRect.centerX()) * (rightBound - leftBound - 1) / width)*/) newIndex = 0 /*(textRect.centerX() * (rightBound - leftBound - 1) / width)*/
-                xLabelsIndexes[i] = newIndex
-            }
-        } else {
-            xLabelsIndexes = MutableList(maxCountOfXLabels) {
-                when (it) {
-                    0 -> {
-                        (textRect.centerX() * (rightBound - leftBound - 1) / width)
-                    }
-                    else -> {
-                        (((width / maxCountOfXLabels) * it + textRect.centerX()) * (rightBound - leftBound - 1) / width)
-                    }
-                }
-            }
+        if (rightBoundClicked) {
+            d = rightBound - newRight
         }
+        rightBound = newRight
 
         boundedMappedX = (if (hasBounds) this.x.subList(leftBound, rightBound) else this.x).run {
             val xMin = first()
@@ -426,7 +474,172 @@ class ChartView(context: Context) : View(context) {
             val k = width / (xMax - xMin)
             map { fl -> width - (xMax - fl) * k }
         }
-        bigChartsPaths = calcChartPaths(0, height / 2, boundedMappedX!!)
+        bigChartsPaths = calcChartPaths(0, bigChartsHeight, boundedMappedX!!)
+
+        if (betweenBoundsClicked) {
+            if (index == -1) index = 0
+            index += d
+            if (index < 0) index = rightBound - leftBound - 1
+            if (index > rightBound - leftBound - 1) index = 0
+            val coordinate = boundedMappedX!![index]
+
+//            xLabels.clear()
+//            var i = 0
+//            while (true) {
+//                if (xLabels.isEmpty()) {
+//                    xLabels.add(coordinate to index)
+//                    i++
+//                }
+//                else {
+//                    val prev = xLabels[i++ - 1]
+//                    var newCoordinate = prev.first + (textRect.width() + 32f.convertDpToPx())
+//                    if (newCoordinate > width - textRect.centerX()) {
+//                        newCoordinate -= width /*- textRect.centerX() */
+//                    }
+//                    if (/*Math.abs(xLabels.last().first - newCoordinate) < textRect.centerX() || */xLabels.size == maxCountOfXLabels) break
+//                    xLabels.add(newCoordinate to ((newCoordinate + textRect.centerX()) * (rightBound - leftBound - 1) / width).toInt())
+//                }
+//            }
+
+            for (i in xLabels.indices) {
+                if (i == 0) {
+                    xLabels[i] = XLabel(coordinate, index)
+                    continue
+                }
+                val prev = xLabels[i - 1]
+                var newCoordinate = prev.coordinate + (textRect.width() + 32f.convertDpToPx())
+                if (newCoordinate > width - textRect.centerX()) {
+                    newCoordinate -= width
+                }
+                xLabels[i] = XLabel(
+                    newCoordinate,
+                    ((newCoordinate + textRect.centerX()) * (rightBound - leftBound - 1) / width).toInt()
+                )
+            }
+        }
+        if (rightBoundClicked) {
+            paint.apply {
+                style = Paint.Style.FILL
+                strokeWidth = textStrokeWidth
+            }
+
+//            val min = xLabels.minBy { it.coordinate }
+
+            val xIndToRemove = mutableListOf<Int>()
+            val labelsToAdd = mutableListOf<XLabel>()
+            for (i in 0 until xLabels.size) {
+                if (i == 0) {
+//                    xLabels[i] = min!!
+                    continue
+                }
+                val label = xLabels[i]
+                if (label.index < rightBound - leftBound - 1) {
+                    val text = formatter.format(x.subList(leftBound, rightBound)[label.index])
+                    val textWidth = paint.measureText(text)
+                    val c = boundedMappedX!![label.index] - textWidth / 2
+                    val center = (label.rightBound - label.leftBound) / 2 + label.leftBound
+                    val k = 255 / ((label.rightBound - label.leftBound) / 2)
+                    val alpha = 255 - Math.abs(center - boundedMappedX!![label.index]) * k
+                    if (alpha < 2) {
+                        val newIndex = (label.leftBound - textRect.width() / 2 + textRect.centerX()) * (rightBound - leftBound - 1) / width
+                        labelsToAdd.add(label.copy(coordinate = label.leftBound - textRect.width() / 2, index = newIndex.toInt(), alpha = 1))
+                        xIndToRemove.add(i)
+                    }
+                    if (alpha > 0) {
+                        xLabels[i] =
+                            label.copy(coordinate = c, index = label.index, alpha = alpha.toInt())
+                        println("$alpha")
+                    }
+
+//                    when {
+//                        c + textWidth > label.rightBound - textWidth / 2 -> {
+////                            val newIndex = (label.leftBound + textRect.centerX()) * (rightBound - leftBound - 1) / width
+////                            xLabelsFadeIn.add(label.copy(coordinate = label.leftBound, index = newIndex.toInt(), alpha = 5))
+////                            xLabelsFadeOut.add(label.copy(coordinate = c, index = label.index, alpha = 250))
+////                            xIndToRemove.add(i)
+//                        }
+//                        c < label.leftBound + textWidth / 2 -> {
+////                            val newIndex = (label.rightBound - textRect.width() + textRect.centerX()) * (rightBound - leftBound - 1) / width
+////                            xLabelsFadeOut.add(label.copy(coordinate = label.rightBound - textRect.width(), index = newIndex.toInt(), alpha = 250))
+////                            xIndToRemove.add(i)
+//                        }
+//                        else -> xLabels[i] = label.copy(coordinate = c, index = label.index)
+//                    }
+                }
+            }
+            xLabels.addAll(labelsToAdd)
+            xIndToRemove.sortedDescending().forEach {
+                xLabels.removeAt(it)
+            }
+
+//            val xIndToRemove1 = mutableListOf<Int>()
+//            for (i in 0 until xLabelsFadeIn.size) {
+//                val label = xLabelsFadeIn[i]
+//                if (label.index < rightBound - leftBound - 1) {
+//                    val text = formatter.format(x.subList(leftBound, rightBound)[label.index])
+//                    val textWidth = paint.measureText(text)
+//                    val c = boundedMappedX!![label.index] - textWidth / 2
+//                    when {
+//                        c + textWidth / 2 > (label.rightBound - label.leftBound) / 2 + label.leftBound -> {
+//                            xLabelsFadeOut.add(label.copy(coordinate = c, index = label.index, alpha = 250))
+//                            xIndToRemove1.add(i)
+//                        }
+//                        else -> {
+//                            val newAlpha = if (label.alpha <= 250) label.alpha + 5 else 255
+//                            xLabelsFadeIn[i] = label.copy(coordinate = c, index = label.index, alpha = newAlpha)
+//                        }
+//                    }
+//                }
+//            }
+//            xIndToRemove1.sortedDescending().forEach {
+//                xLabelsFadeIn.removeAt(it)
+//            }
+//
+//            val xIndToRemove2 = mutableListOf<Int>()
+//            for (i in 0 until xLabelsFadeOut.size) {
+//                val label = xLabelsFadeOut[i]
+//                if (label.index < rightBound - leftBound - 1) {
+//                    val text = formatter.format(x.subList(leftBound, rightBound)[label.index])
+//                    val textWidth = paint.measureText(text)
+//                    val c = boundedMappedX!![label.index] - textWidth / 2
+//                    when {
+//                        c + textWidth > label.rightBound  -> {
+//                            val newIndex = (label.leftBound + textRect.centerX()) * (rightBound - leftBound - 1) / width
+//                            xLabelsFadeIn.add(label.copy(coordinate = label.leftBound, index = newIndex.toInt(), alpha = 5))
+//                            xIndToRemove2.add(i)
+//                        }
+//                        else -> {
+//                            val newAlpha = if (label.alpha >= 5) label.alpha - 5 else 0
+//                            xLabelsFadeOut[i] = label.copy(coordinate = c, index = label.index, alpha = newAlpha)
+//                        }
+//                    }
+//                }
+//            }
+//            xIndToRemove2.sortedDescending().forEach {
+//                xLabelsFadeOut.removeAt(it)
+//            }
+
+        }
+        if (leftBoundClicked) {
+        }
+        /*else {
+            var prev = 0f
+            xLabels = MutableList(maxCountOfXLabels) {
+                val coordinate = if (it == 0) 16f.convertDpToPx()
+                else prev + textRect.width() + 32f.convertDpToPx()
+                prev = coordinate
+                val index = (coordinate + textRect.centerX()) * (rightBound - leftBound - 1) / width
+                coordinate to index.toInt()
+            }
+        }*/
         postInvalidate()
     }
 }
+
+data class XLabel(
+    var coordinate: Float,
+    var index: Int,
+    var leftBound: Float = 0f,
+    var rightBound: Float = 0f,
+    var alpha: Int = -1
+)
