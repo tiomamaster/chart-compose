@@ -167,11 +167,11 @@ class ChartView(context: Context) : View(context) {
 
     private fun calcChartPaths(maxY: Int, chartHeight: Int, mappedX: List<Float>): List<Path> {
         val chatsMaxYValues =
-            y.map { (if (hasBounds) it.subList(leftBound, rightBound) else it).max()!! }
+            y.map { (if (hasBounds) it.subList(leftBound, rightBound) else it).maxOrNull()!! }
         val chatsMinYValues =
-            y.map { (if (hasBounds) it.subList(leftBound, rightBound) else it).min()!! }
-        val maxYOfAll = chatsMaxYValues.max()!!
-        val minYOfAll = chatsMinYValues.min()!!
+            y.map { (if (hasBounds) it.subList(leftBound, rightBound) else it).minOrNull()!! }
+        val maxYOfAll = chatsMaxYValues.maxOrNull()!!
+        val minYOfAll = chatsMinYValues.minOrNull()!!
         val kY = chartHeight / (maxYOfAll - minYOfAll)
 
         return y.mapIndexed { _, ys ->
