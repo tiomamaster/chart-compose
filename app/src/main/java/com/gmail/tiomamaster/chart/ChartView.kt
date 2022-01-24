@@ -49,6 +49,18 @@ class ChartView(context: Context) : View(context) {
         strokeWidth = this@ChartView.textStrokeWidth
         textSize = 10f.convertDpToPx()
     }
+    private val linePaint = Paint(paint).apply {
+        style = Paint.Style.STROKE
+        color = Color.GRAY
+        strokeWidth = 0.5f
+    }
+    private val textPaint = Paint(paint).apply {
+        color = Color.GRAY
+    }
+    private val chartPaint = Paint(paint).apply {
+        style = Paint.Style.STROKE
+        strokeWidth = this@ChartView.strokeWidth
+    }
     private lateinit var bitmap: Bitmap
     private lateinit var canvas: Canvas
     private val bitmapPaint = Paint(Paint.DITHER_FLAG)
@@ -89,6 +101,8 @@ class ChartView(context: Context) : View(context) {
     private var prevX = 0f
 
     private var boundedMappedX: List<Float>? = null
+
+    private var maxYOfAll = 0f
 
     private fun Float.convertDpToPx() =
         this * resources.displayMetrics.densityDpi / DisplayMetrics.DENSITY_DEFAULT
@@ -168,7 +182,7 @@ class ChartView(context: Context) : View(context) {
             y.map { (if (hasBounds) it.subList(leftBound, rightBound) else it).maxOrNull()!! }
         val chatsMinYValues =
             y.map { (if (hasBounds) it.subList(leftBound, rightBound) else it).minOrNull()!! }
-        val maxYOfAll = chatsMaxYValues.maxOrNull()!!
+        maxYOfAll = chatsMaxYValues.maxOrNull()!!
         val minYOfAll = chatsMinYValues.minOrNull()!!
         val kY = chartHeight / (maxYOfAll - minYOfAll)
 
@@ -193,11 +207,6 @@ class ChartView(context: Context) : View(context) {
 
         canvas.drawBitmap(bitmap, 0f, 0f, bitmapPaint)
 
-        paint.apply {
-            strokeWidth = textStrokeWidth
-            color = Color.GRAY
-        }
-
         xLabels.forEach { label ->
             val x = (if (hasBounds) x.subList(leftBound, rightBound) else x)
             if (label.index > x.lastIndex) return@forEach
@@ -206,64 +215,35 @@ class ChartView(context: Context) : View(context) {
                 text,
                 label.coordinate,
                 bigChartsHeight.toFloat() + 16f.convertDpToPx(),
-                paint
+                textPaint
             )
         }
 
-        canvas.drawLine(
-            0f,
-            bigChartsHeight.toFloat(),
-            width.toFloat(),
-            bigChartsHeight.toFloat(),
-            paint.apply {
-                style = Paint.Style.STROKE
-                color = Color.GRAY
-                strokeWidth = 0.5f
-            }
-        )
-        canvas.drawLine(
-            0f,
-            bigChartsHeight.toFloat() - bigChartsHeight / 6,
-            width.toFloat(),
-            bigChartsHeight.toFloat() - bigChartsHeight / 6,
-            paint
-        )
-        canvas.drawLine(
-            0f,
-            bigChartsHeight.toFloat() - 2 * (bigChartsHeight / 6),
-            width.toFloat(),
-            bigChartsHeight.toFloat() - 2 * (bigChartsHeight / 6),
-            paint
-        )
-        canvas.drawLine(
-            0f,
-            bigChartsHeight.toFloat() - 3 * (bigChartsHeight / 6),
-            width.toFloat(),
-            bigChartsHeight.toFloat() - 3 * (bigChartsHeight / 6),
-            paint
-        )
-        canvas.drawLine(
-            0f,
-            bigChartsHeight.toFloat() - 4 * (bigChartsHeight / 6),
-            width.toFloat(),
-            bigChartsHeight.toFloat() - 4 * (bigChartsHeight / 6),
-            paint
-        )
-        canvas.drawLine(
-            0f,
-            bigChartsHeight.toFloat() - 5 * (bigChartsHeight / 6),
-            width.toFloat(),
-            bigChartsHeight.toFloat() - 5 * (bigChartsHeight / 6),
-            paint
-        )
+        for (i in 0..5) {
+            canvas.drawLine(
+                0f,
+                bigChartsHeight.toFloat() - i * bigChartsHeight / 6,
+                width.toFloat(),
+                bigChartsHeight.toFloat() - i * bigChartsHeight / 6,
+                linePaint
+            )
+
+            if (i == 0) continue
+            val text = maxYOfAll / 6 * i
+            canvas.drawText(
+                text.toInt().toString(),
+                8f.convertDpToPx(),
+                bigChartsHeight.toFloat() - i * (bigChartsHeight / 6) - 4f.convertDpToPx(),
+                textPaint
+            )
+        }
 
         bigChartsPaths.forEachIndexed { index, path ->
-            paint.apply {
-                strokeWidth = this@ChartView.strokeWidth
+            chartPaint.apply {
                 color = colors[index]
             }
-            canvas.drawPath(path, paint)
-            canvas.drawPath(smallChartsPaths[index], paint)
+            canvas.drawPath(path, chartPaint)
+            canvas.drawPath(smallChartsPaths[index], chartPaint)
         }
 
         canvas.drawRect(leftBoundRect, paint.apply {
