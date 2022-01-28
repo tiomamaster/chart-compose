@@ -8,9 +8,7 @@ import androidx.compose.foundation.gestures.Orientation
 import androidx.compose.foundation.gestures.draggable
 import androidx.compose.foundation.gestures.rememberDraggableState
 import androidx.compose.foundation.layout.*
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
+import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.drawscope.Stroke
@@ -26,21 +24,21 @@ fun ChartWithPreview(data: ChartData<Number, Number>, modifier: Modifier = Modif
     BoxWithConstraints(modifier) {
         val widthPx = maxWidth.toPx()
         Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
-            val leftBound = remember { mutableStateOf(0f) }
-            val rightBound = remember { mutableStateOf(widthPx) }
+            var leftBound by remember { mutableStateOf(0f) }
+            var rightBound by remember { mutableStateOf(widthPx) }
             Chart(
                 data,
                 Modifier.fillMaxWidth().height(this@BoxWithConstraints.maxHeight / 2),
-                leftBound.value,
-                rightBound.value
+                leftBound,
+                rightBound
             )
             ChartPreview(
                 data,
-                Modifier.fillMaxWidth().height(this@BoxWithConstraints.maxHeight / 4),
+                Modifier.fillMaxWidth().height(this@BoxWithConstraints.maxHeight / 5),
                 widthPx
             ) { left, right ->
-                leftBound.value = left
-                rightBound.value = right
+                leftBound = left
+                rightBound = right
             }
         }
     }
@@ -72,8 +70,8 @@ fun ChartPreview(
 ) {
     val boundWidth = 16.dp
     val boundWidthPx = boundWidth.toPx()
-    val offsetLeft = remember { mutableStateOf(0f) }
-    val offsetRight = remember { mutableStateOf(width - boundWidthPx) }
+    var offsetLeft by remember { mutableStateOf(0f) }
+    var offsetRight by remember { mutableStateOf(width - boundWidthPx) }
 
     Box(modifier) {
         Chart(data, Modifier.fillMaxSize(), 0f, width)
@@ -82,96 +80,90 @@ fun ChartPreview(
             Modifier
                 .fillMaxSize()
                 .padding(
-                    end = width.toDp() - offsetLeft.value.toDp()
+                    end = width.toDp() - offsetLeft.toDp()
                 )
                 .background(Color.Gray.copy(alpha = 0.25f))
         )
 
-        Box(
-            Modifier
-                .offset {
-                    IntOffset(offsetLeft.value.roundToInt(), 0)
-                }
-                .background(Color.Gray.copy(alpha = 0.75f))
-                .width(boundWidth)
-                .fillMaxHeight()
-                .draggable(
-                    orientation = Orientation.Horizontal,
-                    state = rememberDraggableState {
-                        val new = offsetLeft.value + it
-                        if (new >= 0 && new < offsetRight.value - boundWidthPx * 2) {
-                            offsetLeft.value = new
-                            onBoundsChanged(
-                                offsetLeft.value,
-                                offsetRight.value + boundWidthPx
-                            )
-                        }
-                        Log.d("Offset", "offset left = ${offsetLeft.value}")
-                    })
-        )
+        BoundControl(offsetLeft, boundWidth) { delta ->
+            val new = offsetLeft + delta
+            if (new >= 0 && new < offsetRight - boundWidthPx * 4) {
+                offsetLeft = new
+                onBoundsChanged(
+                    offsetLeft,
+                    offsetRight + boundWidthPx
+                )
+            }
+            Log.d("Offset", "offset left = $offsetLeft")
+        }
 
         Box(
             Modifier
                 .fillMaxSize()
                 .padding(
-                    start = boundWidth + offsetLeft.value.toDp(),
-                    end = width.toDp() - offsetRight.value.toDp()
+                    start = boundWidth + offsetLeft.toDp(),
+                    end = width.toDp() - offsetRight.toDp()
                 )
                 .draggable(
                     orientation = Orientation.Horizontal,
                     state = rememberDraggableState {
-                        val newLeft = offsetLeft.value + it
-                        val newRight = offsetRight.value + it
+                        val newLeft = offsetLeft + it
+                        val newRight = offsetRight + it
                         Log.d("lala", "r = $newRight, l = $newLeft")
                         if (newLeft <= 0 || newRight >= width - boundWidthPx) return@rememberDraggableState
-                        if (newLeft >= 0 && newLeft < offsetRight.value - boundWidthPx * 2) {
-                            offsetLeft.value = newLeft
+                        if (newLeft >= 0 && newLeft < offsetRight - boundWidthPx * 2) {
+                            offsetLeft = newLeft
                         }
-                        if (newRight >= offsetLeft.value + boundWidthPx * 2 && newRight < width - boundWidthPx) {
-                            offsetRight.value = newRight
+                        if (newRight >= offsetLeft + boundWidthPx * 2 && newRight < width - boundWidthPx) {
+                            offsetRight = newRight
                         }
                         onBoundsChanged(
-                            offsetLeft.value,
-                            offsetRight.value + boundWidthPx
+                            offsetLeft,
+                            offsetRight + boundWidthPx
                         )
                     }
                 )
-                .border(1.dp, Color.Gray)
+                .border(1.dp, Color.Gray.copy(alpha = 0.75f))
         )
 
-        Box(
-            Modifier
-                .offset {
-                    IntOffset(offsetRight.value.roundToInt(), 0)
-                }
-                .background(Color.Gray.copy(alpha = 0.75f))
-                .width(boundWidth)
-                .fillMaxHeight()
-                .draggable(
-                    orientation = Orientation.Horizontal,
-                    state = rememberDraggableState {
-                        val new = offsetRight.value + it
-                        if (new >= offsetLeft.value + boundWidthPx * 2 && new < width - boundWidthPx) {
-                            offsetRight.value = new
-                            onBoundsChanged(
-                                offsetLeft.value,
-                                offsetRight.value + boundWidthPx
-                            )
-                        }
-                        Log.d("Offset", "offset right= ${offsetRight.value}")
-                    })
-        )
+        BoundControl(offsetRight, boundWidth) { delta ->
+            val new = offsetRight + delta
+            if (new >= offsetLeft + boundWidthPx * 4 && new < width - boundWidthPx) {
+                offsetRight = new
+                onBoundsChanged(
+                    offsetLeft,
+                    offsetRight + boundWidthPx
+                )
+            }
+            Log.d("Offset", "offset right= $offsetRight")
+        }
 
         Box(
             Modifier
                 .fillMaxSize()
                 .padding(
-                    start = offsetRight.value.toDp() + boundWidth
+                    start = offsetRight.toDp() + boundWidth
                 )
                 .background(Color.Gray.copy(alpha = 0.25f))
         )
     }
 }
+
+@Composable
+fun BoundControl(offset: Float, width: Dp, onDrag: (delta: Float) -> Unit) = Box(
+    Modifier
+        .offset {
+            IntOffset(offset.roundToInt(), 0)
+        }
+        .draggable(
+            orientation = Orientation.Horizontal,
+            state = rememberDraggableState(onDrag)
+        )
+        .background(Color.Gray.copy(alpha = 0.75f))
+        .width(width)
+        .fillMaxHeight()
+)
+
 
 @Composable
 private fun Dp.toPx() = with(LocalDensity.current) { this@toPx.toPx() }

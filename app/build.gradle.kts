@@ -7,6 +7,7 @@ dependencies {
     implementation("androidx.appcompat:appcompat:1.4.1")
     implementation("androidx.activity:activity-compose:1.4.0")
     implementation("androidx.compose.ui:ui:1.0.5")
+    implementation("androidx.compose.runtime:runtime:1.0.5")
     implementation("androidx.compose.ui:ui-tooling:1.0.5")
     implementation("androidx.compose.foundation:foundation:1.0.5")
     implementation("com.google.code.gson:gson:2.8.8")

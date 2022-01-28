@@ -1,6 +1,7 @@
 package com.gmail.tiomamaster.chart
 
 import androidx.compose.ui.graphics.Path
+import kotlin.math.roundToInt
 
 data class Chart(
     val colors: Colors?,
@@ -43,7 +44,7 @@ class ChartData<X : Number, Y : Number>(private val x: List<X>, private val y: L
     ): Path =
         Path().apply {
             val newLeft = (x.size * leftBound / chartWidth).toInt()
-            val newRight = (x.size * rightBound / chartWidth).toInt()
+            val newRight = (x.size * rightBound / chartWidth).roundToInt()
             val newY = y.subList(newLeft, newRight)
             val maxY = newY.maxByOrNull { it.toLong() }!!.toLong()
             val minY = newY.minByOrNull { it.toLong() }!!.toLong()
