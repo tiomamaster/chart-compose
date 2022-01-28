@@ -8,11 +8,15 @@ import androidx.compose.foundation.gestures.Orientation
 import androidx.compose.foundation.gestures.draggable
 import androidx.compose.foundation.gestures.rememberDraggableState
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.BasicText
 import androidx.compose.runtime.*
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.IntOffset
@@ -80,12 +84,12 @@ fun ChartPreview(
             Modifier
                 .fillMaxSize()
                 .padding(
-                    end = width.toDp() - offsetLeft.toDp()
+                    end = width.toDp() - offsetLeft.toDp() - 8.dp
                 )
                 .background(Color.Gray.copy(alpha = 0.25f))
         )
 
-        BoundControl(offsetLeft, boundWidth) { delta ->
+        BoundControl(offsetLeft, boundWidth, true) { delta ->
             val new = offsetLeft + delta
             if (new >= 0 && new < offsetRight - boundWidthPx * 4) {
                 offsetLeft = new
@@ -126,7 +130,7 @@ fun ChartPreview(
                 .border(1.dp, Color.Gray.copy(alpha = 0.75f))
         )
 
-        BoundControl(offsetRight, boundWidth) { delta ->
+        BoundControl(offsetRight, boundWidth, false) { delta ->
             val new = offsetRight + delta
             if (new >= offsetLeft + boundWidthPx * 4 && new < width - boundWidthPx) {
                 offsetRight = new
@@ -142,7 +146,7 @@ fun ChartPreview(
             Modifier
                 .fillMaxSize()
                 .padding(
-                    start = offsetRight.toDp() + boundWidth
+                    start = offsetRight.toDp() + boundWidth - 8.dp
                 )
                 .background(Color.Gray.copy(alpha = 0.25f))
         )
@@ -150,7 +154,7 @@ fun ChartPreview(
 }
 
 @Composable
-fun BoundControl(offset: Float, width: Dp, onDrag: (delta: Float) -> Unit) = Box(
+fun BoundControl(offset: Float, width: Dp, isLeft: Boolean, onDrag: (delta: Float) -> Unit) = Box(
     Modifier
         .offset {
             IntOffset(offset.roundToInt(), 0)
@@ -159,11 +163,20 @@ fun BoundControl(offset: Float, width: Dp, onDrag: (delta: Float) -> Unit) = Box
             orientation = Orientation.Horizontal,
             state = rememberDraggableState(onDrag)
         )
-        .background(Color.Gray.copy(alpha = 0.75f))
+        .background(
+            Color.Gray,
+            if (isLeft) RoundedCornerShape(topStart = 8.dp, bottomStart = 8.dp)
+            else RoundedCornerShape(topEnd = 8.dp, bottomEnd = 8.dp)
+        )
         .width(width)
         .fillMaxHeight()
-)
+) {
+    BasicText("||", Modifier.align(Alignment.Center), TextStyle(Color.White))
+}
 
+@Preview
+@Composable
+fun BoundControlPreview() = BoundControl(0f, 16.dp, true) {}
 
 @Composable
 private fun Dp.toPx() = with(LocalDensity.current) { this@toPx.toPx() }
