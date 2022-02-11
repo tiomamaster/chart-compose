@@ -33,38 +33,43 @@ data class Types(
 )
 
 
-class ChartData<X : Number, Y : Number>(private val x: List<X>, private val y: List<Y>) {
+class ChartData<X : Number, Y : Number>(private val x: List<X>, private val y: List<List<Y>>) {
 
-    fun calcPath(
-        topYCoordinate: Float,
+    fun calcPaths(
+        topYCoord: Float,
         chartWidth: Float,
         chartHeight: Float,
         leftBound: Float,
         rightBound: Float
-    ): Path =
-        Path().apply {
-            val newLeft = (x.size * leftBound / chartWidth).toInt()
-            val newRight = (x.size * rightBound / chartWidth).roundToInt()
-            val newY = y.subList(newLeft, newRight)
-            val maxY = newY.maxByOrNull { it.toLong() }!!.toLong()
-            val minY = newY.minByOrNull { it.toLong() }!!.toLong()
-            val kY = chartHeight / (maxY - minY)
-            calcXCoordinates(chartWidth, newLeft, newRight).forEachIndexed { i, x ->
-                val yy = chartHeight - (maxY - newY[i].toLong()) * kY
-                if (i == 0) {
-                    moveTo(x, chartHeight - yy + topYCoordinate)
-                } else {
-                    lineTo(x, chartHeight - yy + topYCoordinate)
+    ): List<Path> {
+        val leftInd = (x.size * leftBound / chartWidth).toInt()
+        val rightInd = (x.size * rightBound / chartWidth).roundToInt()
+        val yBounded = y.map { it.subList(leftInd, rightInd) }
+        val maxY =
+            yBounded.map { list -> list.maxByOrNull { it.toLong() } }
+                .maxByOrNull { it!!.toLong() }!!.toLong()
+        val minY =
+            yBounded.map { list -> list.minByOrNull { it.toLong() } }
+                .minByOrNull { it!!.toLong() }!!.toLong()
+        val kY = chartHeight / (maxY - minY)
+        val xBounded = calcXCoordinates(chartWidth, leftInd, rightInd)
+        return yBounded.map { y ->
+            Path().apply {
+                xBounded.forEachIndexed { i, x ->
+                    val yCoord = (maxY - y[i].toLong()) * kY + topYCoord
+                    if (i == 0) moveTo(x, yCoord)
+                    else lineTo(x, yCoord)
                 }
             }
         }
+    }
 
     private fun calcXCoordinates(width: Float, leftBound: Int, rightBound: Int): List<Float> {
         return x.subList(leftBound, rightBound).run {
             val xMin = first()
             val xMax = last()
             val k = width / (xMax.toLong() - xMin.toLong())
-            map { fl -> width - (xMax.toLong() - fl.toLong()) * k }
+            map { x -> width - (xMax.toLong() - x.toLong()) * k }
         }
     }
 }

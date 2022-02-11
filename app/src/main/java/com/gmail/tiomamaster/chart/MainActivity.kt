@@ -19,11 +19,14 @@ class MainActivity : androidx.activity.ComponentActivity() {
         val chart = gson.fromJson(columnStr, Chart::class.java)
         val x = (chart?.columns?.get(0) as? Iterable<*>)?.drop(1) as? List<Long>
         val y = (chart?.columns?.get(1) as? Iterable<*>)?.drop(1) as? List<Long>
+        val y2 = (chart?.columns?.get(2) as? Iterable<*>)?.drop(1) as? List<Long>
+        val y3 = (chart?.columns?.get(3) as? Iterable<*>)?.drop(1) as? List<Long>
+        val y4 = (chart?.columns?.get(4) as? Iterable<*>)?.drop(1) as? List<Long>
 //        val v = ChartView(this)
 //        setContentView(v)
 //        v.chart = chart
         setContent {
-            ChartWithPreview(ChartData(x!!, y!!), Modifier.padding(16.dp))
+            ChartWithPreview(ChartData(x!!, listOf(y!!, y2!!, y3!!, y4!!)), Modifier.padding(16.dp))
         }
     }
 }

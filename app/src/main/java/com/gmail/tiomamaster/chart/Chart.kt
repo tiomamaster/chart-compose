@@ -55,14 +55,13 @@ fun Chart(
     leftBound: Float,
     rightBound: Float
 ) = Canvas(modifier) {
-    val width = size.width
-    val height = size.height
-
-    drawPath(
-        path = data.calcPath(0f, width, height, leftBound, rightBound),
-        color = Color.Blue,
-        style = Stroke(5f)
-    )
+    data.calcPaths(0f, size.width, size.height, leftBound, rightBound).forEach { path ->
+        drawPath(
+            path = path,
+            color = Color.Blue,
+            style = Stroke(5f)
+        )
+    }
 }
 
 @Composable
@@ -94,7 +93,7 @@ fun ChartPreview(
                     start = boundWidth,
                     end = width.toDp() - offsetLeft.toDp() - boundWidth
                 )
-                .background(Color.Blue.copy(alpha = 0.15f))
+                .background(Color.Gray.copy(alpha = 0.15f))
         )
 
         BoundControl(offsetLeft, boundWidth, true) { delta ->
@@ -135,7 +134,7 @@ fun ChartPreview(
                         )
                     }
                 )
-                .border(1.dp, Color.Blue.copy(alpha = 0.5f))
+                .border(1.dp, Color.Gray.copy(alpha = 0.5f))
         )
 
         BoundControl(offsetRight, boundWidth, false) { delta ->
@@ -157,7 +156,7 @@ fun ChartPreview(
                     start = offsetRight.toDp() + boundWidth - boundWidth,
                     end = boundWidth
                 )
-                .background(Color.Blue.copy(alpha = 0.15f))
+                .background(Color.Gray.copy(alpha = 0.15f))
         )
     }
 }
@@ -173,7 +172,7 @@ fun BoundControl(offset: Float, width: Dp, isLeft: Boolean, onDrag: (delta: Floa
             state = rememberDraggableState(onDrag)
         )
         .background(
-            Color.Blue.copy(alpha = 0.5f),
+            Color.Gray.copy(alpha = 0.5f),
             if (isLeft) RoundedCornerShape(topStart = 8.dp, bottomStart = 8.dp)
             else RoundedCornerShape(topEnd = 8.dp, bottomEnd = 8.dp)
         )
@@ -192,5 +191,5 @@ private fun Float.toDp() = with(LocalDensity.current) { this@toDp.toDp() }
 @Preview
 @Composable
 fun ChartPreview() = ChartWithPreview(
-    ChartData(listOf(1, 2, 3, 4, 5), listOf(100, 55, 28, 99, 128))
+    ChartData(listOf(1, 2, 3, 4, 5), listOf(listOf(100, 55, 28, 99, 128)))
 )
