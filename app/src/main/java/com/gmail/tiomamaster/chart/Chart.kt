@@ -1,5 +1,6 @@
 package com.gmail.tiomamaster.chart
 
+import android.graphics.Paint
 import android.util.Log
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
@@ -15,6 +16,8 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.graphics.drawscope.drawIntoCanvas
+import androidx.compose.ui.graphics.nativeCanvas
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.tooling.preview.Preview
@@ -36,6 +39,7 @@ fun ChartWithPreview(data: ChartData<Number, Number>, modifier: Modifier = Modif
                 leftBound,
                 rightBound
             )
+            XLabels(data, Modifier.fillMaxWidth().height(16.dp))
             ChartPreview(
                 data,
                 Modifier.fillMaxWidth().height(this@BoxWithConstraints.maxHeight / 5),
@@ -61,6 +65,29 @@ fun Chart(
             color = Color.Blue,
             style = Stroke(5f)
         )
+    }
+}
+
+@Composable
+fun XLabels(
+    data: ChartData<Number, Number>,
+    modifier: Modifier = Modifier
+) = Canvas(modifier) {
+    val paint = Paint().apply {
+        isAntiAlias = true
+        isDither = true
+        style = Paint.Style.FILL
+        strokeJoin = Paint.Join.ROUND
+        strokeCap = Paint.Cap.ROUND
+        strokeWidth = 0f
+        textSize = size.height
+        color = android.graphics.Color.GRAY
+    }
+
+    data.getXLabels(paint, size.width).forEach { (coord, text) ->
+        drawIntoCanvas {
+            it.nativeCanvas.drawText(text, coord, size.height, paint)
+        }
     }
 }
 

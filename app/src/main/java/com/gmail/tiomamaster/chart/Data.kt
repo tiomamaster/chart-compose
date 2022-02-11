@@ -1,6 +1,9 @@
 package com.gmail.tiomamaster.chart
 
+import android.graphics.Paint
+import android.graphics.Rect
 import androidx.compose.ui.graphics.Path
+import java.text.SimpleDateFormat
 import kotlin.math.roundToInt
 
 data class Chart(
@@ -35,6 +38,10 @@ data class Types(
 
 class ChartData<X : Number, Y : Number>(private val x: List<X>, private val y: List<List<Y>>) {
 
+    private val formatter = SimpleDateFormat("MMM dd")
+
+    private lateinit var xBounded: List<X>
+
     fun calcPaths(
         topYCoord: Float,
         chartWidth: Float,
@@ -52,10 +59,10 @@ class ChartData<X : Number, Y : Number>(private val x: List<X>, private val y: L
             yBounded.map { list -> list.minByOrNull { it.toLong() } }
                 .minByOrNull { it!!.toLong() }!!.toLong()
         val kY = chartHeight / (maxY - minY)
-        val xBounded = calcXCoordinates(chartWidth, leftInd, rightInd)
+        val xCoordinates = calcXCoordinates(chartWidth, leftInd, rightInd)
         return yBounded.map { y ->
             Path().apply {
-                xBounded.forEachIndexed { i, x ->
+                xCoordinates.forEachIndexed { i, x ->
                     val yCoord = (maxY - y[i].toLong()) * kY + topYCoord
                     if (i == 0) moveTo(x, yCoord)
                     else lineTo(x, yCoord)
@@ -64,8 +71,27 @@ class ChartData<X : Number, Y : Number>(private val x: List<X>, private val y: L
         }
     }
 
+    fun getXLabels(
+        paint: Paint,
+        width: Float
+    ): List<Pair<Float, String>> {
+        val sampleText = "Aug 17"
+        val textRect = Rect()
+        paint.getTextBounds(sampleText, 0, sampleText.lastIndex, textRect)
+        val maxCountOfXLabels = (width / (textRect.width() * 2)).roundToInt()
+        val ki = xBounded.lastIndex / width
+        val labelMaxWidth = width / maxCountOfXLabels
+        return List(maxCountOfXLabels) {
+            val center =
+                if (it == 0) labelMaxWidth / 2 else (it + 1) * labelMaxWidth - labelMaxWidth / 2
+            val coord = center - (textRect.width() / 2)
+            val i = center * ki
+            coord to formatter.format(xBounded[i.toInt()])
+        }
+    }
+
     private fun calcXCoordinates(width: Float, leftBound: Int, rightBound: Int): List<Float> {
-        return x.subList(leftBound, rightBound).run {
+        return x.subList(leftBound, rightBound).also { xBounded = it }.run {
             val xMin = first()
             val xMax = last()
             val k = width / (xMax.toLong() - xMin.toLong())
