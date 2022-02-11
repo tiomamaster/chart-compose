@@ -78,15 +78,23 @@ fun ChartPreview(
     var offsetRight by remember { mutableStateOf(width - boundWidthPx) }
 
     Box(modifier) {
-        Chart(data, Modifier.fillMaxSize(), 0f, width)
+        Chart(
+            data,
+            Modifier
+                .fillMaxSize()
+                .padding(start = boundWidth, end = boundWidth),
+            0f,
+            width - boundWidthPx * 2
+        )
 
         Box(
             Modifier
                 .fillMaxSize()
                 .padding(
-                    end = width.toDp() - offsetLeft.toDp() - 8.dp
+                    start = boundWidth,
+                    end = width.toDp() - offsetLeft.toDp() - boundWidth
                 )
-                .background(Color.Gray.copy(alpha = 0.25f))
+                .background(Color.Blue.copy(alpha = 0.15f))
         )
 
         BoundControl(offsetLeft, boundWidth, true) { delta ->
@@ -127,7 +135,7 @@ fun ChartPreview(
                         )
                     }
                 )
-                .border(1.dp, Color.Gray.copy(alpha = 0.75f))
+                .border(1.dp, Color.Blue.copy(alpha = 0.5f))
         )
 
         BoundControl(offsetRight, boundWidth, false) { delta ->
@@ -146,9 +154,10 @@ fun ChartPreview(
             Modifier
                 .fillMaxSize()
                 .padding(
-                    start = offsetRight.toDp() + boundWidth - 8.dp
+                    start = offsetRight.toDp() + boundWidth - boundWidth,
+                    end = boundWidth
                 )
-                .background(Color.Gray.copy(alpha = 0.25f))
+                .background(Color.Blue.copy(alpha = 0.15f))
         )
     }
 }
@@ -164,7 +173,7 @@ fun BoundControl(offset: Float, width: Dp, isLeft: Boolean, onDrag: (delta: Floa
             state = rememberDraggableState(onDrag)
         )
         .background(
-            Color.Gray,
+            Color.Blue.copy(alpha = 0.5f),
             if (isLeft) RoundedCornerShape(topStart = 8.dp, bottomStart = 8.dp)
             else RoundedCornerShape(topEnd = 8.dp, bottomEnd = 8.dp)
         )
@@ -173,10 +182,6 @@ fun BoundControl(offset: Float, width: Dp, isLeft: Boolean, onDrag: (delta: Floa
 ) {
     BasicText("||", Modifier.align(Alignment.Center), TextStyle(Color.White))
 }
-
-@Preview
-@Composable
-fun BoundControlPreview() = BoundControl(0f, 16.dp, true) {}
 
 @Composable
 private fun Dp.toPx() = with(LocalDensity.current) { this@toPx.toPx() }
