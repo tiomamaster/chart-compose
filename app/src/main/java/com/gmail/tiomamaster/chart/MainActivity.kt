@@ -1,14 +1,16 @@
 package com.gmail.tiomamaster.chart
 
 import android.os.Bundle
+import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
-import androidx.compose.foundation.layout.padding
-import androidx.compose.ui.Modifier
-import androidx.compose.ui.unit.dp
+import com.gmail.tiomamaster.chart.compose.ChartData
+import com.gmail.tiomamaster.chart.compose.ChartWithPreviewDemo
+import com.gmail.tiomamaster.chart.view.Chart
 import com.google.gson.Gson
 import java.nio.charset.Charset
 
-class MainActivity : androidx.activity.ComponentActivity() {
+@Suppress("UNCHECKED_CAST")
+class MainActivity : ComponentActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -26,7 +28,7 @@ class MainActivity : androidx.activity.ComponentActivity() {
 //        setContentView(v)
 //        v.chart = chart
         setContent {
-            ChartWithPreview(ChartData(x!!, listOf(y!!, y2!!, y3!!, y4!!)), Modifier.padding(16.dp))
+            ChartWithPreviewDemo(ChartData(x!!, listOf(y!!, y2!!, y3!!, y4!!)))
         }
     }
 }

@@ -7,4 +7,4 @@ pluginManagement {
 }
 
 rootProject.name = "Chart"
-include(":app")
+include(":app", ":chart-view", ":chart-compose")

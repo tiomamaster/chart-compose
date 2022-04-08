@@ -1,43 +1,15 @@
-package com.gmail.tiomamaster.chart
+package com.gmail.tiomamaster.chart.compose
 
+import android.annotation.SuppressLint
 import android.graphics.Paint
 import android.graphics.Rect
 import androidx.compose.ui.graphics.Path
 import java.text.SimpleDateFormat
 import kotlin.math.roundToInt
 
-data class Chart(
-    val colors: Colors?,
-    val columns: List<Any>?,
-    val names: Names?,
-    val types: Types?
-)
-
-data class Names(
-    val y0: String?,
-    val y1: String?,
-    val y2: String?,
-    val y3: String?
-)
-
-data class Colors(
-    val y0: String?,
-    val y1: String?,
-    val y2: String?,
-    val y3: String?
-)
-
-data class Types(
-    val x: String?,
-    val y0: String?,
-    val y1: String?,
-    val y2: String?,
-    val y3: String?
-)
-
-
 class ChartData<X : Number, Y : Number>(private val x: List<X>, private val y: List<List<Y>>) {
 
+    @SuppressLint("SimpleDateFormat")
     private val formatter = SimpleDateFormat("MMM dd")
 
     private lateinit var xBounded: List<X>

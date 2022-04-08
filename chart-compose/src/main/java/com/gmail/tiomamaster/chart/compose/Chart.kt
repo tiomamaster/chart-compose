@@ -1,4 +1,6 @@
-package com.gmail.tiomamaster.chart
+@file:Suppress("FunctionName")
+
+package com.gmail.tiomamaster.chart.compose
 
 import android.graphics.Paint
 import android.util.Log
@@ -25,6 +27,11 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import kotlin.math.roundToInt
+
+@Composable
+fun ChartWithPreviewDemo(data: ChartData<Number, Number>) {
+    ChartWithPreview(data, Modifier.padding(16.dp))
+}
 
 @Composable
 fun ChartWithPreview(data: ChartData<Number, Number>, modifier: Modifier = Modifier) {

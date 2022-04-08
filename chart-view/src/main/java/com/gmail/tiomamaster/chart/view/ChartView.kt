@@ -1,5 +1,6 @@
-package com.gmail.tiomamaster.chart
+package com.gmail.tiomamaster.chart.view
 
+import android.annotation.SuppressLint
 import android.content.Context
 import android.graphics.*
 import android.util.DisplayMetrics
@@ -7,8 +8,10 @@ import android.view.MotionEvent
 import android.view.View
 import java.text.SimpleDateFormat
 
+@Suppress("unused")
 class ChartView(context: Context) : View(context) {
 
+    @Suppress("UNCHECKED_CAST")
     var chart: Chart? = null
         set(value) {
             field = value
@@ -37,6 +40,7 @@ class ChartView(context: Context) : View(context) {
 
     private lateinit var colors: List<Int>
 
+    @SuppressLint("SimpleDateFormat")
     private val formatter = SimpleDateFormat("MMM dd")
     private val strokeWidth = 2.5f
     private val textStrokeWidth = 0f
@@ -277,6 +281,7 @@ class ChartView(context: Context) : View(context) {
         )
     }
 
+    @SuppressLint("ClickableViewAccessibility")
     override fun onTouchEvent(event: MotionEvent): Boolean {
         val x = event.x
         val y = event.y
