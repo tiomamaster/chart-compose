@@ -72,10 +72,10 @@ fun Chart(
     leftBound: Float,
     rightBound: Float
 ) = Canvas(modifier) {
-    data.calcPaths(0f, size.width, size.height, leftBound, rightBound).forEach { path ->
+    data.calcPaths(0f, size.width, size.height, leftBound, rightBound).forEach { (path, color) ->
         drawPath(
             path = path,
-            color = Color.Blue,
+            color = color,
             style = Stroke(5f)
         )
     }
@@ -229,5 +229,5 @@ fun BoundControl(offset: Float, width: Dp, isLeft: Boolean, onDrag: (delta: Floa
 @Preview
 @Composable
 fun ChartPreview() = ChartWithPreview(
-    ChartData(listOf(1, 2, 3, 4, 5), listOf(listOf(100, 55, 28, 99, 128))), Modifier
+    ChartData(listOf(1, 2, 3, 4, 5), listOf(listOf(100, 55, 28, 99, 128)), emptyList()), Modifier
 ) { "X label" }

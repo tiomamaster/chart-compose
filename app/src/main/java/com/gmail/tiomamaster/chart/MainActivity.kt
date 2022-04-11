@@ -3,6 +3,7 @@ package com.gmail.tiomamaster.chart
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
+import androidx.compose.ui.graphics.Color
 import com.gmail.tiomamaster.chart.compose.ChartData
 import com.gmail.tiomamaster.chart.compose.ChartWithPreviewDemo
 import com.gmail.tiomamaster.chart.view.Chart
@@ -28,7 +29,13 @@ class MainActivity : ComponentActivity() {
 //        setContentView(v)
 //        v.chart = chart
         setContent {
-            ChartWithPreviewDemo(ChartData(x!!, listOf(y!!, y2!!, y3!!, y4!!)))
+            ChartWithPreviewDemo(
+                ChartData(
+                    x!!,
+                    listOf(y!!, y2!!, y3!!, y4!!),
+                    listOf(Color.Blue, Color.Red)
+                )
+            )
         }
     }
 }

@@ -2,12 +2,24 @@ package com.gmail.tiomamaster.chart.compose
 
 import android.graphics.Paint
 import android.graphics.Rect
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
 import kotlin.math.roundToInt
 
-class ChartData<X : Number, Y : Number>(private val x: List<X>, private val y: List<List<Y>>) {
+class ChartData<X : Number, Y : Number>(
+    private val x: List<X>,
+    private val y: List<List<Y>>,
+    private val colors: List<Color>
+) {
 
     private lateinit var xBounded: List<X>
+
+    init {
+        y.forEach {
+            require(x.size == it.size) { "Each list in y should have tha same size as x list" }
+        }
+        require(colors.size == y.size) { "Colors list and y list should have the same size" }
+    }
 
     fun calcPaths(
         topYCoord: Float,
@@ -15,7 +27,7 @@ class ChartData<X : Number, Y : Number>(private val x: List<X>, private val y: L
         chartHeight: Float,
         leftBound: Float,
         rightBound: Float
-    ): List<Path> {
+    ): List<Pair<Path, Color>> {
         val leftBoundInd = (x.size * leftBound / chartWidth).toInt()
         val rightBoundInd = (x.size * rightBound / chartWidth).roundToInt()
         val yBounded = y.map { it.subList(leftBoundInd, rightBoundInd) }
@@ -25,14 +37,14 @@ class ChartData<X : Number, Y : Number>(private val x: List<X>, private val y: L
             .minByOrNull { it!!.toLong() }!!.toLong()
         val kY = chartHeight / (maxY - minY)
         val xCoordinates = calcXCoordinates(chartWidth, leftBoundInd, rightBoundInd)
-        return yBounded.map { y ->
+        return yBounded.mapIndexed { i, y ->
             Path().apply {
                 xCoordinates.forEachIndexed { i, xCoord ->
                     val yCoord = (maxY - y[i].toLong()) * kY + topYCoord
                     if (i == 0) moveTo(xCoord, yCoord)
                     else lineTo(xCoord, yCoord)
                 }
-            }
+            } to colors[i]
         }
     }
 
