@@ -8,6 +8,7 @@ import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.gestures.Orientation
+import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.gestures.draggable
 import androidx.compose.foundation.gestures.rememberDraggableState
 import androidx.compose.foundation.layout.*
@@ -20,38 +21,59 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.drawscope.drawIntoCanvas
 import androidx.compose.ui.graphics.nativeCanvas
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.tooling.preview.Preview
-import androidx.compose.ui.unit.Dp
-import androidx.compose.ui.unit.IntOffset
-import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.*
 import java.text.SimpleDateFormat
 import kotlin.math.roundToInt
 
+@SuppressLint("SimpleDateFormat")
 @Composable
 fun ChartWithPreviewDemo(data: ChartData<Number, Number>) {
-    @SuppressLint("SimpleDateFormat")
-    val formatter = SimpleDateFormat("MMM dd")
-    ChartWithPreview(data, Modifier.padding(16.dp), formatter::format)
+    val labelsFormatter = SimpleDateFormat("MMM dd")
+    val detailsFormatter = SimpleDateFormat("yyyy/MMM dd")
+    ChartWithPreview(
+        Modifier.padding(16.dp),
+        data,
+        labelsFormatter::format,
+        detailsFormatter::format
+    )
 }
 
 @Composable
 fun ChartWithPreview(
-    data: ChartData<Number, Number>,
     modifier: Modifier = Modifier,
-    xLabelsFormatter: (xValue: Number) -> String
+    data: ChartData<Number, Number>,
+    xLabelsFormatter: (xValue: Number) -> String,
+    xDetailsFormatter: (xValue: Number) -> String
 ) {
     BoxWithConstraints(modifier) {
         val widthPx = maxWidth.toPx()
         Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
             var leftBound by remember { mutableStateOf(0f) }
             var rightBound by remember { mutableStateOf(widthPx) }
-            Chart(
-                data,
-                Modifier.fillMaxWidth().height(this@BoxWithConstraints.maxHeight / 2),
-                leftBound,
-                rightBound
-            )
+            Box {
+                var x by remember { mutableStateOf(-1f) }
+                Chart(
+                    data,
+                    Modifier
+                        .fillMaxWidth()
+                        .height(this@BoxWithConstraints.maxHeight / 2)
+                        .pointerInput(Unit) {
+                            detectTapGestures(onTap = { offset -> x = offset.x })
+                        },
+                    leftBound,
+                    rightBound
+                )
+                if (x != -1f) {
+                    val (title, ys) = data.getDetailsForCoord(x, widthPx, xDetailsFormatter)
+                    Details(
+                        Modifier.offset { IntOffset(x.toInt(), 0) },
+                        title, data.colors, data.labels, ys
+                    )
+                }
+            }
             XLabels(data, Modifier.fillMaxWidth().height(16.dp), xLabelsFormatter)
             ChartPreview(
                 data,
@@ -60,6 +82,38 @@ fun ChartWithPreview(
             ) { left, right ->
                 leftBound = left
                 rightBound = right
+            }
+        }
+    }
+}
+
+@OptIn(ExperimentalUnitApi::class)
+@Composable
+fun Details(
+    modifier: Modifier,
+    title: String,
+    colors: List<Color>,
+    labels: List<String>,
+    yValues: List<Number>
+) = Box(
+    modifier
+        .background(Color.White)
+        .border(Dp.Hairline, Color.Black, RoundedCornerShape(4.dp))
+        .padding(8.dp)
+) {
+    Column(Modifier.width(IntrinsicSize.Max), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+        BasicText(title)
+        colors.forEachIndexed { i, color ->
+            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                BasicText(
+                    labels[i],
+                    style = TextStyle.Default.copy(fontSize = TextUnit(10f, TextUnitType.Sp))
+                )
+                Spacer(Modifier.width(8.dp))
+                BasicText(
+                    yValues[i].toString(),
+                    style = TextStyle.Default.copy(color, TextUnit(10f, TextUnitType.Sp))
+                )
             }
         }
     }
@@ -229,5 +283,23 @@ fun BoundControl(offset: Float, width: Dp, isLeft: Boolean, onDrag: (delta: Floa
 @Preview
 @Composable
 fun ChartPreview() = ChartWithPreview(
-    ChartData(listOf(1, 2, 3, 4, 5), listOf(listOf(100, 55, 28, 99, 128)), emptyList()), Modifier
-) { "X label" }
+    Modifier,
+    ChartData(
+        listOf(1, 2, 3, 4, 5),
+        listOf(listOf(100, 55, 28, 99, 128)),
+        listOf(Color.Red),
+        listOf("1")
+    ),
+    { "X label" },
+    { "Aug 11" }
+)
+
+@Preview
+@Composable
+fun DetailsPreview() = Details(
+    Modifier,
+    "Aug 8",
+    listOf(Color.Blue, Color.Red),
+    listOf("1", "2"),
+    listOf(1121, 2224)
+)

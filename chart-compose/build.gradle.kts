@@ -4,9 +4,10 @@ plugins {
 }
 
 dependencies {
+    implementation("androidx.appcompat:appcompat:1.4.1")
     implementation("androidx.compose.ui:ui:1.1.1")
-    implementation("androidx.compose.runtime:runtime:1.1.1")
     implementation("androidx.compose.ui:ui-tooling:1.1.1")
+    implementation("androidx.compose.runtime:runtime:1.1.1")
     implementation("androidx.compose.foundation:foundation:1.1.1")
 }
 

@@ -9,16 +9,19 @@ import kotlin.math.roundToInt
 class ChartData<X : Number, Y : Number>(
     private val x: List<X>,
     private val y: List<List<Y>>,
-    private val colors: List<Color>
+    val colors: List<Color>,
+    val labels: List<String>
 ) {
 
     private lateinit var xBounded: List<X>
+    private lateinit var yBounded: List<List<Y>>
 
     init {
         y.forEach {
             require(x.size == it.size) { "Each list in y should have tha same size as x list" }
         }
         require(colors.size == y.size) { "Colors list and y list should have the same size" }
+        require(labels.size == y.size) { "Labels list and y list should have the same size" }
     }
 
     fun calcPaths(
@@ -30,7 +33,7 @@ class ChartData<X : Number, Y : Number>(
     ): List<Pair<Path, Color>> {
         val leftBoundInd = (x.size * leftBound / chartWidth).toInt()
         val rightBoundInd = (x.size * rightBound / chartWidth).roundToInt()
-        val yBounded = y.map { it.subList(leftBoundInd, rightBoundInd) }
+        yBounded = y.map { it.subList(leftBoundInd, rightBoundInd) }
         val maxY = yBounded.map { list -> list.maxByOrNull { it.toLong() } }
             .maxByOrNull { it!!.toLong() }!!.toLong()
         val minY = yBounded.map { list -> list.minByOrNull { it.toLong() } }
@@ -48,6 +51,16 @@ class ChartData<X : Number, Y : Number>(
         }
     }
 
+    fun getDetailsForCoord(
+        xCoord: Float,
+        width: Float,
+        xDetailsFormatter: (xValue: Number) -> String
+    ): Pair<String, List<Y>> = with(xCoord.getIndexForCoord(width)) {
+        xDetailsFormatter(xBounded[this]) to yBounded.map { it[this] }
+    }
+
+    private fun Float.getIndexForCoord(width: Float) = (this * xBounded.lastIndex / width).toInt()
+
     fun getXLabels(
         paint: Paint,
         width: Float,
@@ -62,8 +75,8 @@ class ChartData<X : Number, Y : Number>(
             val center =
                 if (it == 0) labelMaxWidth / 2 else (it + 1) * labelMaxWidth - labelMaxWidth / 2
             val coord = center - (textRect.width() / 2)
-            val i = center * xBounded.lastIndex / width
-            coord to formatter(xBounded[i.toInt()])
+            val i = center.getIndexForCoord(width)
+            coord to formatter(xBounded[i])
         }
     }
 

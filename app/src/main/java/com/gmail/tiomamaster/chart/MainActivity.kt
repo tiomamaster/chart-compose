@@ -33,7 +33,8 @@ class MainActivity : ComponentActivity() {
                 ChartData(
                     x!!,
                     listOf(y!!, y2!!, y3!!, y4!!),
-                    listOf(Color.Blue, Color.Red)
+                    listOf(Color.Blue, Color.Red, Color.Green, Color.Magenta),
+                    listOf("1", "2", "3", "4")
                 )
             )
         }
