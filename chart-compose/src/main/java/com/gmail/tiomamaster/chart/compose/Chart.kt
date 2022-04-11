@@ -2,6 +2,7 @@
 
 package com.gmail.tiomamaster.chart.compose
 
+import android.annotation.SuppressLint
 import android.graphics.Paint
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
@@ -24,15 +25,22 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
+import java.text.SimpleDateFormat
 import kotlin.math.roundToInt
 
 @Composable
 fun ChartWithPreviewDemo(data: ChartData<Number, Number>) {
-    ChartWithPreview(data, Modifier.padding(16.dp))
+    @SuppressLint("SimpleDateFormat")
+    val formatter = SimpleDateFormat("MMM dd")
+    ChartWithPreview(data, Modifier.padding(16.dp), formatter::format)
 }
 
 @Composable
-fun ChartWithPreview(data: ChartData<Number, Number>, modifier: Modifier = Modifier) {
+fun ChartWithPreview(
+    data: ChartData<Number, Number>,
+    modifier: Modifier = Modifier,
+    xLabelsFormatter: (xValue: Number) -> String
+) {
     BoxWithConstraints(modifier) {
         val widthPx = maxWidth.toPx()
         Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
@@ -44,7 +52,7 @@ fun ChartWithPreview(data: ChartData<Number, Number>, modifier: Modifier = Modif
                 leftBound,
                 rightBound
             )
-            XLabels(data, Modifier.fillMaxWidth().height(16.dp))
+            XLabels(data, Modifier.fillMaxWidth().height(16.dp), xLabelsFormatter)
             ChartPreview(
                 data,
                 Modifier.fillMaxWidth().height(this@BoxWithConstraints.maxHeight / 5),
@@ -92,10 +100,11 @@ private fun getXLabelsPaint(txtSize: Float): Paint {
 @Composable
 fun XLabels(
     data: ChartData<Number, Number>,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    formatter: (xValue: Number) -> String
 ) = Canvas(modifier) {
     val paint = getXLabelsPaint(size.height)
-    data.getXLabels(paint, size.width).forEach { (coord, text) ->
+    data.getXLabels(paint, size.width, formatter).forEach { (coord, text) ->
         drawIntoCanvas {
             it.nativeCanvas.drawText(text, coord, size.height, paint)
         }
@@ -220,5 +229,5 @@ fun BoundControl(offset: Float, width: Dp, isLeft: Boolean, onDrag: (delta: Floa
 @Preview
 @Composable
 fun ChartPreview() = ChartWithPreview(
-    ChartData(listOf(1, 2, 3, 4, 5), listOf(listOf(100, 55, 28, 99, 128)))
-)
+    ChartData(listOf(1, 2, 3, 4, 5), listOf(listOf(100, 55, 28, 99, 128))), Modifier
+) { "X label" }

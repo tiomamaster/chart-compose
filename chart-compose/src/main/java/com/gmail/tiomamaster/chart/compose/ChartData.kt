@@ -1,16 +1,11 @@
 package com.gmail.tiomamaster.chart.compose
 
-import android.annotation.SuppressLint
 import android.graphics.Paint
 import android.graphics.Rect
 import androidx.compose.ui.graphics.Path
-import java.text.SimpleDateFormat
 import kotlin.math.roundToInt
 
 class ChartData<X : Number, Y : Number>(private val x: List<X>, private val y: List<List<Y>>) {
-
-    @SuppressLint("SimpleDateFormat")
-    private val formatter = SimpleDateFormat("MMM dd")
 
     private lateinit var xBounded: List<X>
 
@@ -43,9 +38,10 @@ class ChartData<X : Number, Y : Number>(private val x: List<X>, private val y: L
 
     fun getXLabels(
         paint: Paint,
-        width: Float
+        width: Float,
+        formatter: (xValue: X) -> String
     ): List<Pair<Float, String>> {
-        val sampleText = "Aug 17"
+        val sampleText = formatter(xBounded.first())
         val textRect = Rect()
         paint.getTextBounds(sampleText, 0, sampleText.lastIndex, textRect)
         val maxCountOfXLabels = (width / (textRect.width() * 2)).roundToInt()
@@ -55,7 +51,7 @@ class ChartData<X : Number, Y : Number>(private val x: List<X>, private val y: L
                 if (it == 0) labelMaxWidth / 2 else (it + 1) * labelMaxWidth - labelMaxWidth / 2
             val coord = center - (textRect.width() / 2)
             val i = center * xBounded.lastIndex / width
-            coord to formatter.format(xBounded[i.toInt()])
+            coord to formatter(xBounded[i.toInt()])
         }
     }
 
