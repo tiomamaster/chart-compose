@@ -21,23 +21,21 @@ class ChartData<X : Number, Y : Number>(private val x: List<X>, private val y: L
         leftBound: Float,
         rightBound: Float
     ): List<Path> {
-        val leftInd = (x.size * leftBound / chartWidth).toInt()
-        val rightInd = (x.size * rightBound / chartWidth).roundToInt()
-        val yBounded = y.map { it.subList(leftInd, rightInd) }
-        val maxY =
-            yBounded.map { list -> list.maxByOrNull { it.toLong() } }
-                .maxByOrNull { it!!.toLong() }!!.toLong()
-        val minY =
-            yBounded.map { list -> list.minByOrNull { it.toLong() } }
-                .minByOrNull { it!!.toLong() }!!.toLong()
+        val leftBoundInd = (x.size * leftBound / chartWidth).toInt()
+        val rightBoundInd = (x.size * rightBound / chartWidth).roundToInt()
+        val yBounded = y.map { it.subList(leftBoundInd, rightBoundInd) }
+        val maxY = yBounded.map { list -> list.maxByOrNull { it.toLong() } }
+            .maxByOrNull { it!!.toLong() }!!.toLong()
+        val minY = yBounded.map { list -> list.minByOrNull { it.toLong() } }
+            .minByOrNull { it!!.toLong() }!!.toLong()
         val kY = chartHeight / (maxY - minY)
-        val xCoordinates = calcXCoordinates(chartWidth, leftInd, rightInd)
+        val xCoordinates = calcXCoordinates(chartWidth, leftBoundInd, rightBoundInd)
         return yBounded.map { y ->
             Path().apply {
-                xCoordinates.forEachIndexed { i, x ->
+                xCoordinates.forEachIndexed { i, xCoord ->
                     val yCoord = (maxY - y[i].toLong()) * kY + topYCoord
-                    if (i == 0) moveTo(x, yCoord)
-                    else lineTo(x, yCoord)
+                    if (i == 0) moveTo(xCoord, yCoord)
+                    else lineTo(xCoord, yCoord)
                 }
             }
         }
@@ -51,19 +49,18 @@ class ChartData<X : Number, Y : Number>(private val x: List<X>, private val y: L
         val textRect = Rect()
         paint.getTextBounds(sampleText, 0, sampleText.lastIndex, textRect)
         val maxCountOfXLabels = (width / (textRect.width() * 2)).roundToInt()
-        val ki = xBounded.lastIndex / width
         val labelMaxWidth = width / maxCountOfXLabels
         return List(maxCountOfXLabels) {
             val center =
                 if (it == 0) labelMaxWidth / 2 else (it + 1) * labelMaxWidth - labelMaxWidth / 2
             val coord = center - (textRect.width() / 2)
-            val i = center * ki
+            val i = center * xBounded.lastIndex / width
             coord to formatter.format(xBounded[i.toInt()])
         }
     }
 
-    private fun calcXCoordinates(width: Float, leftBound: Int, rightBound: Int): List<Float> {
-        return x.subList(leftBound, rightBound).also { xBounded = it }.run {
+    private fun calcXCoordinates(width: Float, leftBoundInd: Int, rightBoundInd: Int): List<Float> {
+        return x.subList(leftBoundInd, rightBoundInd).also { xBounded = it }.run {
             val xMin = first()
             val xMax = last()
             val k = width / (xMax.toLong() - xMin.toLong())

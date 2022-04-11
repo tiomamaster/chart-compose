@@ -3,7 +3,6 @@
 package com.gmail.tiomamaster.chart.compose
 
 import android.graphics.Paint
-import android.util.Log
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -20,7 +19,6 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.drawscope.drawIntoCanvas
 import androidx.compose.ui.graphics.nativeCanvas
-import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.Dp
@@ -75,22 +73,28 @@ fun Chart(
     }
 }
 
-@Composable
-fun XLabels(
-    data: ChartData<Number, Number>,
-    modifier: Modifier = Modifier
-) = Canvas(modifier) {
-    val paint = Paint().apply {
+private var xLabelsPaint: Paint? = null
+
+private fun getXLabelsPaint(txtSize: Float): Paint {
+    if (xLabelsPaint == null) xLabelsPaint = Paint().apply {
         isAntiAlias = true
         isDither = true
         style = Paint.Style.FILL
         strokeJoin = Paint.Join.ROUND
         strokeCap = Paint.Cap.ROUND
         strokeWidth = 0f
-        textSize = size.height
+        textSize = txtSize
         color = android.graphics.Color.GRAY
     }
+    return xLabelsPaint!!
+}
 
+@Composable
+fun XLabels(
+    data: ChartData<Number, Number>,
+    modifier: Modifier = Modifier
+) = Canvas(modifier) {
+    val paint = getXLabelsPaint(size.height)
     data.getXLabels(paint, size.width).forEach { (coord, text) ->
         drawIntoCanvas {
             it.nativeCanvas.drawText(text, coord, size.height, paint)
@@ -139,7 +143,6 @@ fun ChartPreview(
                     offsetRight + boundWidthPx
                 )
             }
-            Log.d("Offset", "offset left = $offsetLeft")
         }
 
         Box(
@@ -154,7 +157,6 @@ fun ChartPreview(
                     state = rememberDraggableState {
                         val newLeft = offsetLeft + it
                         val newRight = offsetRight + it
-                        Log.d("lala", "r = $newRight, l = $newLeft")
                         if (newLeft <= 0 || newRight >= width - boundWidthPx) return@rememberDraggableState
                         if (newLeft >= 0 && newLeft < offsetRight - boundWidthPx * 2) {
                             offsetLeft = newLeft
@@ -180,7 +182,6 @@ fun ChartPreview(
                     offsetRight + boundWidthPx
                 )
             }
-            Log.d("Offset", "offset right= $offsetRight")
         }
 
         Box(
@@ -215,12 +216,6 @@ fun BoundControl(offset: Float, width: Dp, isLeft: Boolean, onDrag: (delta: Floa
 ) {
     BasicText("||", Modifier.align(Alignment.Center), TextStyle(Color.White))
 }
-
-@Composable
-private fun Dp.toPx() = with(LocalDensity.current) { this@toPx.toPx() }
-
-@Composable
-private fun Float.toDp() = with(LocalDensity.current) { this@toDp.toDp() }
 
 @Preview
 @Composable
