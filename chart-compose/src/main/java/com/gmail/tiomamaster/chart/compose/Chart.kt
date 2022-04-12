@@ -7,10 +7,7 @@ import android.graphics.Paint
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
-import androidx.compose.foundation.gestures.Orientation
-import androidx.compose.foundation.gestures.detectTapGestures
-import androidx.compose.foundation.gestures.draggable
-import androidx.compose.foundation.gestures.rememberDraggableState
+import androidx.compose.foundation.gestures.*
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicText
@@ -34,7 +31,7 @@ fun ChartWithPreviewDemo(data: ChartData<Number, Number>) {
     val labelsFormatter = SimpleDateFormat("MMM dd")
     val detailsFormatter = SimpleDateFormat("EE, dd MMM yyyy")
     ChartWithPreview(
-        Modifier.padding(16.dp),
+        Modifier.padding(top = 16.dp, bottom = 16.dp),
         data,
         labelsFormatter::format,
         detailsFormatter::format
@@ -53,15 +50,24 @@ fun ChartWithPreview(
         Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
             var leftBound by remember { mutableStateOf(0f) }
             var rightBound by remember { mutableStateOf(widthPx) }
+            var x by remember { mutableStateOf(-1f) }
             Box(Modifier.height(IntrinsicSize.Max)) {
-                var x by remember { mutableStateOf(-1f) }
                 Chart(
                     data,
                     Modifier
                         .fillMaxWidth()
                         .height(this@BoxWithConstraints.maxHeight / 2)
                         .pointerInput(Unit) {
-                            detectTapGestures(onTap = { offset -> x = offset.x })
+                            detectTapGestures { offset -> x = offset.x }
+                        }
+                        .pointerInput(Unit) {
+                            detectHorizontalDragGestures(
+                                onHorizontalDrag = { change, dragAmount ->
+                                    if (x == -1f) x = change.position.x
+                                    val newX = x + dragAmount
+                                    x = newX.coerceIn(0f, widthPx)
+                                }
+                            )
                         },
                     leftBound,
                     rightBound
@@ -70,18 +76,25 @@ fun ChartWithPreview(
                     val (title, ys) = data.getDetailsForCoord(x, xDetailsFormatter)
                     Details(
                         Modifier.offset { IntOffset(x.toInt(), 0) },
-                        title, data.colors, data.labels, ys
+                        title,
+                        data.colors,
+                        data.labels,
+                        ys
                     )
                 }
             }
             XLabels(data, Modifier.fillMaxWidth().height(16.dp), xLabelsFormatter)
             ChartPreview(
                 data.copy(),
-                Modifier.fillMaxWidth().height(this@BoxWithConstraints.maxHeight / 5),
-                widthPx
+                Modifier
+                    .fillMaxWidth()
+                    .height(this@BoxWithConstraints.maxHeight / 5)
+                    .padding(start = 16.dp, end = 16.dp),
+                widthPx - 32.dp.toPx()
             ) { left, right ->
                 leftBound = left
                 rightBound = right
+                x = -1f
             }
         }
     }
