@@ -32,7 +32,7 @@ import kotlin.math.roundToInt
 @Composable
 fun ChartWithPreviewDemo(data: ChartData<Number, Number>) {
     val labelsFormatter = SimpleDateFormat("MMM dd")
-    val detailsFormatter = SimpleDateFormat("yyyy/MMM dd")
+    val detailsFormatter = SimpleDateFormat("EE, dd MMM yyyy")
     ChartWithPreview(
         Modifier.padding(16.dp),
         data,
@@ -53,7 +53,7 @@ fun ChartWithPreview(
         Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
             var leftBound by remember { mutableStateOf(0f) }
             var rightBound by remember { mutableStateOf(widthPx) }
-            Box {
+            Box(Modifier.height(IntrinsicSize.Max)) {
                 var x by remember { mutableStateOf(-1f) }
                 Chart(
                     data,
@@ -67,7 +67,7 @@ fun ChartWithPreview(
                     rightBound
                 )
                 if (x != -1f) {
-                    val (title, ys) = data.getDetailsForCoord(x, widthPx, xDetailsFormatter)
+                    val (title, ys) = data.getDetailsForCoord(x, xDetailsFormatter)
                     Details(
                         Modifier.offset { IntOffset(x.toInt(), 0) },
                         title, data.colors, data.labels, ys
@@ -76,7 +76,7 @@ fun ChartWithPreview(
             }
             XLabels(data, Modifier.fillMaxWidth().height(16.dp), xLabelsFormatter)
             ChartPreview(
-                data,
+                data.copy(),
                 Modifier.fillMaxWidth().height(this@BoxWithConstraints.maxHeight / 5),
                 widthPx
             ) { left, right ->
@@ -95,28 +95,39 @@ fun Details(
     colors: List<Color>,
     labels: List<String>,
     yValues: List<Number>
-) = Box(
-    modifier
-        .background(Color.White)
-        .border(Dp.Hairline, Color.Black, RoundedCornerShape(4.dp))
-        .padding(8.dp)
-) {
-    Column(Modifier.width(IntrinsicSize.Max), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-        BasicText(title)
-        colors.forEachIndexed { i, color ->
-            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                BasicText(
-                    labels[i],
-                    style = TextStyle.Default.copy(fontSize = TextUnit(10f, TextUnitType.Sp))
-                )
-                Spacer(Modifier.width(8.dp))
-                BasicText(
-                    yValues[i].toString(),
-                    style = TextStyle.Default.copy(color, TextUnit(10f, TextUnitType.Sp))
-                )
+) = Column(modifier) {
+    Box(
+        Modifier
+            .background(Color.White)
+            .border(Dp.Hairline, Color.Black, RoundedCornerShape(4.dp))
+            .padding(8.dp)
+    ) {
+        Column(
+            Modifier.width(IntrinsicSize.Max),
+            verticalArrangement = Arrangement.spacedBy(4.dp)
+        ) {
+            BasicText(title)
+            colors.forEachIndexed { i, color ->
+                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                    BasicText(
+                        labels[i],
+                        style = TextStyle.Default.copy(fontSize = TextUnit(10f, TextUnitType.Sp))
+                    )
+                    Spacer(Modifier.width(8.dp))
+                    BasicText(
+                        yValues[i].toString(),
+                        style = TextStyle.Default.copy(color, TextUnit(10f, TextUnitType.Sp))
+                    )
+                }
             }
         }
     }
+    Box(
+        Modifier
+            .fillMaxHeight()
+            .width(1.dp)
+            .background(Color.LightGray)
+    )
 }
 
 @Composable
@@ -126,7 +137,7 @@ fun Chart(
     leftBound: Float,
     rightBound: Float
 ) = Canvas(modifier) {
-    data.calcPaths(0f, size.width, size.height, leftBound, rightBound).forEach { (path, color) ->
+    data.calcPaths(size.width, size.height, leftBound, rightBound).forEach { (path, color) ->
         drawPath(
             path = path,
             color = color,

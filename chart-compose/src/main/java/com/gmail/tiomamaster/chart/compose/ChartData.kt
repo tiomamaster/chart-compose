@@ -6,15 +6,21 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
 import kotlin.math.roundToInt
 
-class ChartData<X : Number, Y : Number>(
+data class ChartData<X : Number, Y : Number>(
     private val x: List<X>,
     private val y: List<List<Y>>,
     val colors: List<Color>,
     val labels: List<String>
 ) {
-
-    private lateinit var xBounded: List<X>
+    private var width = 0f
+    private var leftBoundInd: Int = 0
+    private var rightBoundInd: Int = 0
     private lateinit var yBounded: List<List<Y>>
+    private lateinit var xBounded: List<X>
+    private var yMax = 0L
+    private var kY = 0f
+    private var xMax = 0L
+    private var kX = 0f
 
     init {
         y.forEach {
@@ -25,25 +31,25 @@ class ChartData<X : Number, Y : Number>(
     }
 
     fun calcPaths(
-        topYCoord: Float,
         chartWidth: Float,
         chartHeight: Float,
         leftBound: Float,
         rightBound: Float
     ): List<Pair<Path, Color>> {
-        val leftBoundInd = (x.size * leftBound / chartWidth).toInt()
-        val rightBoundInd = (x.size * rightBound / chartWidth).roundToInt()
+        width = chartWidth
+        leftBoundInd = (x.size * leftBound / chartWidth).toInt()
+        rightBoundInd = (x.size * rightBound / chartWidth).roundToInt()
         yBounded = y.map { it.subList(leftBoundInd, rightBoundInd) }
-        val maxY = yBounded.map { list -> list.maxByOrNull { it.toLong() } }
-            .maxByOrNull { it!!.toLong() }!!.toLong()
-        val minY = yBounded.map { list -> list.minByOrNull { it.toLong() } }
+        val yMin = yBounded.map { list -> list.minByOrNull { it.toLong() } }
             .minByOrNull { it!!.toLong() }!!.toLong()
-        val kY = chartHeight / (maxY - minY)
-        val xCoordinates = calcXCoordinates(chartWidth, leftBoundInd, rightBoundInd)
+        yMax = yBounded.map { list -> list.maxByOrNull { it.toLong() } }
+            .maxByOrNull { it!!.toLong() }!!.toLong()
+        kY = chartHeight / (yMax - yMin)
+        val xCoordinates = calcXCoordinates()
         return yBounded.mapIndexed { i, y ->
             Path().apply {
                 xCoordinates.forEachIndexed { i, xCoord ->
-                    val yCoord = (maxY - y[i].toLong()) * kY + topYCoord
+                    val yCoord = y[i].coordOfYValue
                     if (i == 0) moveTo(xCoord, yCoord)
                     else lineTo(xCoord, yCoord)
                 }
@@ -53,13 +59,19 @@ class ChartData<X : Number, Y : Number>(
 
     fun getDetailsForCoord(
         xCoord: Float,
-        width: Float,
         xDetailsFormatter: (xValue: Number) -> String
-    ): Pair<String, List<Y>> = with(xCoord.getIndexForCoord(width)) {
-        xDetailsFormatter(xBounded[this]) to yBounded.map { it[this] }
+    ): Pair<String, List<Y>> = with(xCoord.indexOfCoord) {
+        val xCoord = xBounded[this].coordOfXValue
+        val yValues = yBounded.map { it[this] }
+        val yCoords = yValues.map { }
+        xDetailsFormatter(xBounded[this]) to yValues
     }
 
-    private fun Float.getIndexForCoord(width: Float) = (this * xBounded.lastIndex / width).toInt()
+    private val Y.coordOfYValue get() = (yMax - toLong()) * kY
+
+    private val Float.indexOfCoord get() = (this * xBounded.lastIndex / width).toInt()
+
+    private val X.coordOfXValue get() = width - (xMax - toLong()) * kX
 
     fun getXLabels(
         paint: Paint,
@@ -75,17 +87,16 @@ class ChartData<X : Number, Y : Number>(
             val center =
                 if (it == 0) labelMaxWidth / 2 else (it + 1) * labelMaxWidth - labelMaxWidth / 2
             val coord = center - (textRect.width() / 2)
-            val i = center.getIndexForCoord(width)
+            val i = center.indexOfCoord
             coord to formatter(xBounded[i])
         }
     }
 
-    private fun calcXCoordinates(width: Float, leftBoundInd: Int, rightBoundInd: Int): List<Float> {
-        return x.subList(leftBoundInd, rightBoundInd).also { xBounded = it }.run {
-            val xMin = first()
-            val xMax = last()
-            val k = width / (xMax.toLong() - xMin.toLong())
-            map { x -> width - (xMax.toLong() - x.toLong()) * k }
+    private fun calcXCoordinates(): List<Float> =
+        x.subList(leftBoundInd, rightBoundInd).also { xBounded = it }.run {
+            val xMin = first().toLong()
+            xMax = last().toLong()
+            kX = width / (xMax - xMin)
+            map { x -> x.coordOfXValue }
         }
-    }
 }
