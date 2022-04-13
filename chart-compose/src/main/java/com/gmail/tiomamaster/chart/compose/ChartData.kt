@@ -78,18 +78,22 @@ data class ChartData<X : Number, Y : Number>(
         width: Float,
         formatter: (xValue: X) -> String
     ): List<Pair<Float, String>> {
-        val sampleText = formatter(xBounded.first())
-        val textRect = Rect()
-        paint.getTextBounds(sampleText, 0, sampleText.lastIndex, textRect)
-        val maxCountOfXLabels = (width / (textRect.width() * 2)).roundToInt()
+        val maxCountOfXLabels = (width / (paint.textSize * 6)).roundToInt()
         val labelMaxWidth = width / maxCountOfXLabels
+        val textRect = Rect()
         return List(maxCountOfXLabels) {
             val center =
                 if (it == 0) labelMaxWidth / 2 else (it + 1) * labelMaxWidth - labelMaxWidth / 2
-            val coord = center - (textRect.width() / 2)
             val i = center.indexOfCoord
-            coord to formatter(xBounded[i])
+            val text = formatter(xBounded[i])
+            val coord = center - (paint.calcLabelWidth(text, textRect) / 2)
+            coord to text
         }
+    }
+
+    private fun Paint.calcLabelWidth(text: String, rect: Rect): Int {
+        getTextBounds(text, 0, text.lastIndex, rect)
+        return rect.width()
     }
 
     private fun calcXCoordinates(): List<Float> =
