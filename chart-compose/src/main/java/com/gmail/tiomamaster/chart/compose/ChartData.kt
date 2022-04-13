@@ -22,6 +22,10 @@ data class ChartData<X : Number, Y : Number>(
     private var xMax = 0L
     private var kX = 0f
 
+    private val Y.yCoord get() = (yMax - toLong()) * kY
+    private val X.xCoord get() = width - (xMax - toLong()) * kX
+    private val Float.indexOfCoord get() = (this * xBounded.lastIndex / width).toInt()
+
     init {
         y.forEach {
             require(x.size == it.size) { "Each list in y should have tha same size as x list" }
@@ -49,7 +53,7 @@ data class ChartData<X : Number, Y : Number>(
         return yBounded.mapIndexed { i, y ->
             Path().apply {
                 xCoordinates.forEachIndexed { i, xCoord ->
-                    val yCoord = y[i].coordOfYValue
+                    val yCoord = y[i].yCoord
                     if (i == 0) moveTo(xCoord, yCoord)
                     else lineTo(xCoord, yCoord)
                 }
@@ -58,20 +62,25 @@ data class ChartData<X : Number, Y : Number>(
     }
 
     fun getDetailsForCoord(
-        xCoord: Float,
+        touchXCoord: Float,
         xDetailsFormatter: (xValue: Number) -> String
-    ): Pair<String, List<Y>> = with(xCoord.indexOfCoord) {
-        val xCoord = xBounded[this].coordOfXValue
+    ): DetailsData = with(touchXCoord.indexOfCoord) {
         val yValues = yBounded.map { it[this] }
-        val yCoords = yValues.map { }
-        xDetailsFormatter(xBounded[this]) to yValues
+        val yCoords = yValues.map { it.yCoord }
+        DetailsData(
+            xDetailsFormatter(xBounded[this]),
+            xBounded[this].xCoord,
+            yCoords,
+            yValues
+        )
     }
 
-    private val Y.coordOfYValue get() = (yMax - toLong()) * kY
-
-    private val Float.indexOfCoord get() = (this * xBounded.lastIndex / width).toInt()
-
-    private val X.coordOfXValue get() = width - (xMax - toLong()) * kX
+    data class DetailsData(
+        val title: String,
+        val xCoord: Float,
+        val yCoords: List<Float>,
+        val yValues: List<Number>
+    )
 
     fun getXLabels(
         paint: Paint,
@@ -101,6 +110,6 @@ data class ChartData<X : Number, Y : Number>(
             val xMin = first().toLong()
             xMax = last().toLong()
             kX = width / (xMax - xMin)
-            map { x -> x.coordOfXValue }
+            map { x -> x.xCoord }
         }
 }
