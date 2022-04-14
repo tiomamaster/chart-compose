@@ -53,11 +53,12 @@ fun ChartWithPreview(
         var leftBound by remember { mutableStateOf(0f) }
         var rightBound by remember { mutableStateOf(widthPx) }
         var touchXCoord by remember { mutableStateOf(-1f) }
+
         Box(Modifier.height(IntrinsicSize.Max)) {
             Chart(
                 Modifier
                     .fillMaxWidth()
-                    .height(this@BoxWithConstraints.maxHeight / 2)
+                    .height(this@BoxWithConstraints.maxHeight * 3 / 4)
                     .pointerInput(Unit) {
                         detectTapGestures { offset -> touchXCoord = offset.x }
                     }
@@ -93,10 +94,10 @@ fun ChartWithPreview(
             data.copy(),
             Modifier
                 .fillMaxWidth()
-                .height(this@BoxWithConstraints.maxHeight / 5)
+                .height(this@BoxWithConstraints.maxHeight * 1 / 4)
                 .padding(start = 16.dp, end = 16.dp),
             widthPx - 32.dp.toPx(),
-            32.dp.toPx()
+            widthPx
         ) { left, right ->
             leftBound = left
             rightBound = right
@@ -222,94 +223,94 @@ fun ChartPreview(
     data: ChartData<Number, Number>,
     modifier: Modifier = Modifier,
     width: Float,
-    totalPadding: Float,
+    bigChartWidth: Float,
     onBoundsChanged: (left: Float, right: Float) -> Unit
-) {
+) = Box(modifier) {
     val boundWidth = 16.dp
     val boundWidthPx = boundWidth.toPx()
+    val range = width - boundWidthPx
+    val k = bigChartWidth / range
     var offsetLeft by remember { mutableStateOf(0f) }
-    var offsetRight by remember { mutableStateOf(width - boundWidthPx) }
+    var offsetRight by remember { mutableStateOf(range) }
 
-    Box(modifier) {
-        Chart(
-            Modifier
-                .fillMaxSize()
-                .padding(start = boundWidth, end = boundWidth),
-            data,
-            0f,
-            width - boundWidthPx * 2
-        )
+    Chart(
+        Modifier
+            .fillMaxSize()
+            .padding(start = boundWidth, end = boundWidth),
+        data,
+        0f,
+        width - boundWidthPx * 2
+    )
 
-        Box(
-            Modifier
-                .fillMaxSize()
-                .padding(
-                    start = boundWidth,
-                    end = width.toDp() - offsetLeft.toDp() - boundWidth
-                )
-                .background(Color.Gray.copy(alpha = 0.15f))
-        )
+    Box(
+        Modifier
+            .fillMaxSize()
+            .padding(
+                start = boundWidth,
+                end = width.toDp() - offsetLeft.toDp() - boundWidth
+            )
+            .background(Color.Gray.copy(alpha = 0.15f))
+    )
 
-        BoundControl(offsetLeft, boundWidth, true) { delta ->
-            val new = offsetLeft + delta
-            if (new >= 0 && new < offsetRight - boundWidthPx * 4) {
-                offsetLeft = new
-                onBoundsChanged(
-                    offsetLeft,
-                    offsetRight + boundWidthPx + totalPadding
-                )
-            }
+    BoundControl(offsetLeft, boundWidth, true) { delta ->
+        val new = offsetLeft + delta
+        if (new >= 0 && new < offsetRight - boundWidthPx * 4) {
+            offsetLeft = new
+            onBoundsChanged(
+                offsetLeft * k,
+                offsetRight * k
+            )
         }
-
-        Box(
-            Modifier
-                .fillMaxSize()
-                .padding(
-                    start = boundWidth + offsetLeft.toDp(),
-                    end = width.toDp() - offsetRight.toDp()
-                )
-                .draggable(
-                    orientation = Orientation.Horizontal,
-                    state = rememberDraggableState {
-                        val newLeft = offsetLeft + it
-                        val newRight = offsetRight + it
-                        if (newLeft <= 0 || newRight >= width - boundWidthPx) return@rememberDraggableState
-                        if (newLeft >= 0 && newLeft < offsetRight - boundWidthPx * 2) {
-                            offsetLeft = newLeft
-                        }
-                        if (newRight >= offsetLeft + boundWidthPx * 2 && newRight < width - boundWidthPx) {
-                            offsetRight = newRight
-                        }
-                        onBoundsChanged(
-                            offsetLeft,
-                            offsetRight + boundWidthPx + totalPadding
-                        )
-                    }
-                )
-                .border(1.dp, Color.Gray.copy(alpha = 0.5f))
-        )
-
-        BoundControl(offsetRight, boundWidth, false) { delta ->
-            val new = offsetRight + delta
-            if (new >= offsetLeft + boundWidthPx * 4 && new < width - boundWidthPx) {
-                offsetRight = new
-                onBoundsChanged(
-                    offsetLeft,
-                    offsetRight + boundWidthPx + totalPadding
-                )
-            }
-        }
-
-        Box(
-            Modifier
-                .fillMaxSize()
-                .padding(
-                    start = offsetRight.toDp() + boundWidth - boundWidth,
-                    end = boundWidth
-                )
-                .background(Color.Gray.copy(alpha = 0.15f))
-        )
     }
+
+    Box(
+        Modifier
+            .fillMaxSize()
+            .padding(
+                start = boundWidth + offsetLeft.toDp(),
+                end = width.toDp() - offsetRight.toDp()
+            )
+            .draggable(
+                orientation = Orientation.Horizontal,
+                state = rememberDraggableState {
+                    val newLeft = offsetLeft + it
+                    val newRight = offsetRight + it
+                    if (newLeft <= 0 || newRight >= width - boundWidthPx) return@rememberDraggableState
+                    if (newLeft >= 0 && newLeft < offsetRight - boundWidthPx * 2) {
+                        offsetLeft = newLeft
+                    }
+                    if (newRight >= offsetLeft + boundWidthPx * 2 && newRight < width - boundWidthPx) {
+                        offsetRight = newRight
+                    }
+                    onBoundsChanged(
+                        offsetLeft * k,
+                        offsetRight * k
+                    )
+                }
+            )
+            .border(1.dp, Color.Gray.copy(alpha = 0.5f))
+    )
+
+    BoundControl(offsetRight, boundWidth, false) { delta ->
+        val new = offsetRight + delta
+        if (new >= offsetLeft + boundWidthPx * 4 && new < width - boundWidthPx) {
+            offsetRight = new
+            onBoundsChanged(
+                offsetLeft * k,
+                offsetRight * k
+            )
+        }
+    }
+
+    Box(
+        Modifier
+            .fillMaxSize()
+            .padding(
+                start = offsetRight.toDp() + boundWidth - boundWidth,
+                end = boundWidth
+            )
+            .background(Color.Gray.copy(alpha = 0.15f))
+    )
 }
 
 @Composable
@@ -335,8 +336,8 @@ fun BoundControl(offset: Float, width: Dp, isLeft: Boolean, onDrag: (delta: Floa
 
 @Preview
 @Composable
-fun ChartPreview() = ChartWithPreview(
-    Modifier,
+fun ChartWithPreviewPreview() = ChartWithPreview(
+    Modifier.background(Color.White),
     ChartData(
         listOf(1, 2, 3, 4, 5),
         listOf(listOf(100, 55, 28, 99, 128)),
