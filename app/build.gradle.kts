@@ -8,6 +8,7 @@ dependencies {
     implementation(project(":chart-compose"))
     implementation("androidx.appcompat:appcompat:1.4.1")
     implementation("androidx.activity:activity-compose:1.4.0")
+    implementation("androidx.compose.foundation:foundation:1.1.1")
     implementation("com.google.code.gson:gson:2.8.8")
 }
 

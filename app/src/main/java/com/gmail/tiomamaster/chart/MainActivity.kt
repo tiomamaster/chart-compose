@@ -1,14 +1,20 @@
 package com.gmail.tiomamaster.chart
 
+import android.annotation.SuppressLint
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
+import androidx.compose.foundation.layout.padding
+import androidx.compose.runtime.Composable
+import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.unit.dp
 import com.gmail.tiomamaster.chart.compose.ChartData
-import com.gmail.tiomamaster.chart.compose.ChartWithPreviewDemo
+import com.gmail.tiomamaster.chart.compose.ChartWithPreview
 import com.gmail.tiomamaster.chart.view.Chart
 import com.google.gson.Gson
 import java.nio.charset.Charset
+import java.text.SimpleDateFormat
 
 @Suppress("UNCHECKED_CAST")
 class MainActivity : ComponentActivity() {
@@ -38,5 +44,19 @@ class MainActivity : ComponentActivity() {
                 )
             )
         }
+    }
+
+    @Suppress("FunctionName")
+    @SuppressLint("SimpleDateFormat")
+    @Composable
+    private fun ChartWithPreviewDemo(data: ChartData<Number, Number>) {
+        val labelsFormatter = SimpleDateFormat("MMM dd")
+        val detailsFormatter = SimpleDateFormat("EE, dd MMM yyyy")
+        ChartWithPreview(
+            Modifier.padding(top = 16.dp, bottom = 16.dp),
+            data,
+            labelsFormatter::format,
+            detailsFormatter::format
+        )
     }
 }
