@@ -30,10 +30,9 @@ internal fun ChartPreview(
 ) = Box(modifier) {
     val boundWidth = 16.dp
     val boundWidthPx = boundWidth.toPx()
-    val range = width - boundWidthPx
-    val k = bigChartWidth / range
+    val k = bigChartWidth / (width - boundWidthPx * 2)
     var offsetLeft by remember { mutableStateOf(0f) }
-    var offsetRight by remember { mutableStateOf(range) }
+    var offsetRight by remember { mutableStateOf(width - boundWidthPx) }
 
     Chart(
         Modifier
@@ -60,7 +59,7 @@ internal fun ChartPreview(
             offsetLeft = new
             onBoundsChanged(
                 offsetLeft * k,
-                offsetRight * k
+                (offsetRight - boundWidthPx) * k
             )
         }
     }
@@ -86,7 +85,7 @@ internal fun ChartPreview(
                     }
                     onBoundsChanged(
                         offsetLeft * k,
-                        offsetRight * k
+                        (offsetRight - boundWidthPx) * k
                     )
                 }
             )
@@ -99,7 +98,7 @@ internal fun ChartPreview(
             offsetRight = new
             onBoundsChanged(
                 offsetLeft * k,
-                offsetRight * k
+                (offsetRight - boundWidthPx) * k
             )
         }
     }
