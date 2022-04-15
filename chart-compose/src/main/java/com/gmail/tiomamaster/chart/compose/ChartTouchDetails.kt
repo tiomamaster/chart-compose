@@ -21,13 +21,14 @@ import kotlin.math.roundToInt
 @OptIn(ExperimentalUnitApi::class)
 @Composable
 internal fun ChartTouchDetails(
-    modifier: Modifier,
+    offset: Int,
+    chartWidth: Int,
     title: String,
     colors: List<Color>,
     labels: List<String>,
     yCoords: List<Float>,
     yValues: List<Number>
-) = Box(modifier) {
+) = Box(Modifier.offset { IntOffset(offset, 0) }) {
     val lineWidth = 1.dp
     Box(
         Modifier
@@ -51,11 +52,14 @@ internal fun ChartTouchDetails(
         )
     }
 
-    var offset by remember { mutableStateOf(0) }
+    var infoOffset by remember { mutableStateOf(0) }
     Column(
         Modifier
-            .offset { IntOffset(offset, 0) }
-            .onSizeChanged { offset = it.width / -2 }
+            .offset { IntOffset(infoOffset, 0) }
+            .onSizeChanged {
+                infoOffset =
+                    (it.width / -2).coerceIn(offset * -1, it.width * -1 + chartWidth - offset)
+            }
             .background(Color.White)
             .border(Dp.Hairline, Color.Black, RoundedCornerShape(4.dp))
             .padding(8.dp)
@@ -87,7 +91,8 @@ internal fun ChartTouchDetails(
 @Preview
 @Composable
 private fun ChartTouchDetailsPreview() = ChartTouchDetails(
-    Modifier,
+    0,
+    1080,
     "Aug 8",
     listOf(Color.Blue, Color.Red),
     listOf("1", "2"),

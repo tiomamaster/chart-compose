@@ -52,7 +52,8 @@ fun ChartWithPreview(
             if (touchXCoord != -1f) {
                 val detailsData = data.getDetailsForCoord(touchXCoord, xDetailsFormatter)
                 ChartTouchDetails(
-                    Modifier.offset { IntOffset(detailsData.xCoord.roundToInt(), 0) },
+                    detailsData.xCoord.roundToInt(),
+                    widthPx.roundToInt(),
                     detailsData.title,
                     data.colors,
                     data.labels,
