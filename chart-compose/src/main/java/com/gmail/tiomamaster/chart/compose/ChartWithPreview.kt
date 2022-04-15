@@ -11,7 +11,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.tooling.preview.Preview
-import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import kotlin.math.roundToInt
 
@@ -27,6 +26,7 @@ fun ChartWithPreview(
         var leftBound by remember { mutableStateOf(0f) }
         var rightBound by remember { mutableStateOf(widthPx) }
         var touchXCoord by remember { mutableStateOf(-1f) }
+        var isDetailsVisible by remember { mutableStateOf(false) }
 
         Box(Modifier.height(IntrinsicSize.Max)) {
             Chart(
@@ -34,14 +34,18 @@ fun ChartWithPreview(
                     .fillMaxWidth()
                     .height(this@BoxWithConstraints.maxHeight * 3 / 4)
                     .pointerInput(Unit) {
-                        detectTapGestures { offset -> touchXCoord = offset.x }
+                        detectTapGestures { offset ->
+                            touchXCoord = offset.x
+                            isDetailsVisible = true
+                        }
                     }
                     .pointerInput(Unit) {
                         detectHorizontalDragGestures(
                             onHorizontalDrag = { change, dragAmount ->
                                 if (touchXCoord == -1f) touchXCoord = change.position.x
-                                val newX = touchXCoord + dragAmount
-                                touchXCoord = newX.coerceIn(0f, widthPx)
+                                val new = touchXCoord + dragAmount
+                                touchXCoord = new.coerceIn(0f, widthPx)
+                                isDetailsVisible = true
                             }
                         )
                     },
@@ -49,17 +53,20 @@ fun ChartWithPreview(
                 leftBound,
                 rightBound
             )
-            if (touchXCoord != -1f) {
-                val detailsData = data.getDetailsForCoord(touchXCoord, xDetailsFormatter)
-                ChartTouchDetails(
-                    detailsData.xCoord.roundToInt(),
-                    widthPx.roundToInt(),
-                    detailsData.title,
-                    data.colors,
-                    data.labels,
-                    detailsData.yCoords,
-                    detailsData.yValues
-                )
+
+            val detailsData = touchXCoord.takeUnless { it == -1f }
+                ?.let { data.getDetailsForCoord(it, xDetailsFormatter) }
+            ChartTouchDetails(
+                isDetailsVisible,
+                detailsData?.xCoord?.roundToInt() ?: (widthPx / 2).roundToInt(),
+                widthPx.roundToInt(),
+                detailsData?.title ?: "",
+                data.colors,
+                data.labels,
+                detailsData?.yCoords ?: List(data.colors.size) { 0f },
+                detailsData?.yValues ?: List(data.colors.size) { 0f }
+            ) {
+                touchXCoord = -1f
             }
         }
 
@@ -76,7 +83,7 @@ fun ChartWithPreview(
         ) { left, right ->
             leftBound = left
             rightBound = right
-            touchXCoord = -1f
+            isDetailsVisible = false
         }
     }
 }
