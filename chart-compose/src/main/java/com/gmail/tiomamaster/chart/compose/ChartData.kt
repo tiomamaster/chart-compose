@@ -24,7 +24,7 @@ data class ChartData<X : Number, Y : Number>(
 
     private val Y.yCoord get() = (yMax - toLong()) * kY
     private val X.xCoord get() = width - (xMax - toLong()) * kX
-    private val Float.indexOfCoord get() = (this * xBounded.lastIndex / width).toInt()
+    private val Float.indexOfCoord get() = (this * xBounded.lastIndex / width).roundToInt()
 
     init {
         y.forEach {

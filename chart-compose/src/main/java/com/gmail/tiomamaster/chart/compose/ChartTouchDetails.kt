@@ -63,7 +63,7 @@ internal fun ChartTouchDetails(
                     .offset { IntOffset(xOffset, yOffset) }
                     .alpha(animatedAlpha)
                     .clip(CircleShape)
-                    .border(1.dp, color, CircleShape)
+                    .border(2.dp, color, CircleShape)
                     .background(Color.White)
                     .size(dotSize)
             )
