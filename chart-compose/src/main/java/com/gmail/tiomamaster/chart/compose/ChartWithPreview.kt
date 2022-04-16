@@ -24,7 +24,12 @@ fun ChartWithPreview(
     val widthPx = maxWidth.toPx()
     val bigChartPaddingEnd = 16.dp
     val bigChartWidthPx = widthPx - bigChartPaddingEnd.toPx()
-    Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
+    val bigChartHeight = this@BoxWithConstraints.maxHeight * 3 / 4
+    val labelSize = 14.dp
+    val yLabelsStartPadding = 16.dp
+    val xLabelsTopPadding = 8.dp
+
+    Column {
         var leftBound by remember { mutableStateOf(0f) }
         var rightBound by remember { mutableStateOf(bigChartWidthPx) }
         var touchXCoord by remember { mutableStateOf(-1f) }
@@ -35,7 +40,7 @@ fun ChartWithPreview(
                 Modifier
                     .fillMaxWidth()
                     .padding(end = bigChartPaddingEnd)
-                    .height(this@BoxWithConstraints.maxHeight * 3 / 4)
+                    .height(bigChartHeight)
                     .pointerInput(Unit) {
                         detectTapGestures { offset ->
                             touchXCoord = offset.x
@@ -54,12 +59,14 @@ fun ChartWithPreview(
                     },
                 data,
                 leftBound,
-                rightBound
+                rightBound,
+                LabelSettings(labelSize, yLabelsStartPadding, xLabelsTopPadding, xLabelsFormatter)
             )
 
             val detailsData = touchXCoord.takeUnless { it == -1f }
                 ?.let { data.getDetailsForCoord(it, xDetailsFormatter) }
             ChartTouchDetails(
+                bigChartHeight - labelSize - xLabelsTopPadding,
                 isDetailsVisible,
                 detailsData?.xCoord?.roundToInt() ?: (widthPx / 2).roundToInt(),
                 widthPx.roundToInt(),
@@ -73,13 +80,12 @@ fun ChartWithPreview(
             }
         }
 
-        XLabels(16.dp, bigChartPaddingEnd, data, xLabelsFormatter)
+        Spacer(Modifier.height(16.dp))
 
         ChartPreview(
             data.copy(),
             Modifier
                 .fillMaxWidth()
-                .height(this@BoxWithConstraints.maxHeight * 1 / 4)
                 .padding(start = 16.dp, end = 16.dp),
             widthPx - 32.dp.toPx(),
             bigChartWidthPx

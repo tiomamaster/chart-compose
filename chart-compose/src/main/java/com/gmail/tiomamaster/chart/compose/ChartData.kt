@@ -61,6 +61,8 @@ data class ChartData<X : Number, Y : Number>(
         }
     }
 
+    fun getYValueByCoord(yCoord: Float): Long = (yMax - yCoord / kY).toLong()
+
     fun getDetailsForCoord(
         touchXCoord: Float,
         xDetailsFormatter: (xValue: Number) -> String

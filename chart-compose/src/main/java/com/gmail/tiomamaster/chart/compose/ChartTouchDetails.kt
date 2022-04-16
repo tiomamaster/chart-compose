@@ -26,6 +26,7 @@ import kotlin.math.roundToInt
 @OptIn(ExperimentalUnitApi::class, ExperimentalAnimationApi::class)
 @Composable
 internal fun ChartTouchDetails(
+    height: Dp,
     visible: Boolean,
     offset: Int,
     chartWidth: Int,
@@ -41,7 +42,7 @@ internal fun ChartTouchDetails(
         finishedListener = { if (it == 0f) onDisappearFinished() }
     )
     val animatedOffset by animateIntAsState(offset)
-    Box(Modifier.offset { IntOffset(animatedOffset, 0) }) {
+    Box(Modifier.offset { IntOffset(animatedOffset, 0) }.height(height)) {
         val lineWidth = 1.dp
         val lineWidthPx = (lineWidth.toPx() / 2).roundToInt()
         Box(
@@ -123,6 +124,7 @@ internal fun ChartTouchDetails(
 @Preview
 @Composable
 private fun ChartTouchDetailsPreview() = ChartTouchDetails(
+    100.dp,
     true,
     0,
     1080,
