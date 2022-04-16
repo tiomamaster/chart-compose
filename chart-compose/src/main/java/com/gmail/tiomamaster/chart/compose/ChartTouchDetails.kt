@@ -43,8 +43,10 @@ internal fun ChartTouchDetails(
     val animatedOffset by animateIntAsState(offset)
     Box(Modifier.offset { IntOffset(animatedOffset, 0) }) {
         val lineWidth = 1.dp
+        val lineWidthPx = (lineWidth.toPx() / 2).roundToInt()
         Box(
             Modifier
+                .offset { IntOffset(-lineWidthPx, 0) }
                 .alpha(animatedAlpha)
                 .fillMaxHeight()
                 .width(lineWidth)
@@ -53,7 +55,7 @@ internal fun ChartTouchDetails(
 
         val dotSize = 8.dp
         val halfDotSizePxNegative = (dotSize.toPx() / -2).toInt()
-        val xOffset = halfDotSizePxNegative + (lineWidth.toPx() / 2).toInt()
+        val xOffset = halfDotSizePxNegative + lineWidthPx
         colors.forEachIndexed { i, color ->
             val yOffset = yCoords[i].roundToInt() + halfDotSizePxNegative
             Box(
@@ -74,7 +76,7 @@ internal fun ChartTouchDetails(
                 .alpha(animatedAlpha)
                 .onSizeChanged {
                     infoOffset =
-                        (it.width / -2).coerceIn(offset * -1, it.width * -1 + chartWidth - offset)
+                        (it.width / -2).coerceIn(-offset, chartWidth - it.width - offset)
                 }
                 .background(Color.White)
                 .border(Dp.Hairline, Color.Black, RoundedCornerShape(4.dp))
