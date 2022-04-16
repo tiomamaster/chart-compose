@@ -4,10 +4,15 @@ package com.gmail.tiomamaster.chart.compose
 
 import android.graphics.Paint
 import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.drawscope.drawIntoCanvas
 import androidx.compose.ui.graphics.nativeCanvas
+import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.unit.dp
 
 private var xLabelsPaint: Paint? = null
 
@@ -27,10 +32,11 @@ private fun getXLabelsPaint(txtSize: Float): Paint {
 
 @Composable
 internal fun XLabels(
+    height: Dp,
+    paddingEnd: Dp,
     data: ChartData<Number, Number>,
-    modifier: Modifier = Modifier,
     formatter: (xValue: Number) -> String
-) = Canvas(modifier) {
+) = Canvas(Modifier.fillMaxWidth().padding(end = paddingEnd).height(height)) {
     val paint = getXLabelsPaint(size.height)
     data.getXLabels(paint, size.width, formatter).forEach { (coord, text) ->
         drawIntoCanvas {

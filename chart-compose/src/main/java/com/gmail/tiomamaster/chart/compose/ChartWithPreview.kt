@@ -22,9 +22,11 @@ fun ChartWithPreview(
     xDetailsFormatter: (xValue: Number) -> String
 ) = BoxWithConstraints(modifier) {
     val widthPx = maxWidth.toPx()
+    val bigChartPaddingEnd = 16.dp
+    val bigChartWidthPx = widthPx - bigChartPaddingEnd.toPx()
     Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
         var leftBound by remember { mutableStateOf(0f) }
-        var rightBound by remember { mutableStateOf(widthPx) }
+        var rightBound by remember { mutableStateOf(bigChartWidthPx) }
         var touchXCoord by remember { mutableStateOf(-1f) }
         var isDetailsVisible by remember { mutableStateOf(false) }
 
@@ -32,6 +34,7 @@ fun ChartWithPreview(
             Chart(
                 Modifier
                     .fillMaxWidth()
+                    .padding(end = bigChartPaddingEnd)
                     .height(this@BoxWithConstraints.maxHeight * 3 / 4)
                     .pointerInput(Unit) {
                         detectTapGestures { offset ->
@@ -44,7 +47,7 @@ fun ChartWithPreview(
                             onHorizontalDrag = { change, dragAmount ->
                                 if (touchXCoord == -1f) touchXCoord = change.position.x
                                 val new = touchXCoord + dragAmount
-                                touchXCoord = new.coerceIn(0f, widthPx)
+                                touchXCoord = new.coerceIn(0f, bigChartWidthPx)
                                 isDetailsVisible = true
                             }
                         )
@@ -70,7 +73,7 @@ fun ChartWithPreview(
             }
         }
 
-        XLabels(data, Modifier.fillMaxWidth().height(16.dp), xLabelsFormatter)
+        XLabels(16.dp, bigChartPaddingEnd, data, xLabelsFormatter)
 
         ChartPreview(
             data.copy(),
@@ -79,7 +82,7 @@ fun ChartWithPreview(
                 .height(this@BoxWithConstraints.maxHeight * 1 / 4)
                 .padding(start = 16.dp, end = 16.dp),
             widthPx - 32.dp.toPx(),
-            widthPx
+            bigChartWidthPx
         ) { left, right ->
             leftBound = left
             rightBound = right
