@@ -4,7 +4,7 @@ package com.gmail.tiomamaster.chart.compose
 
 import android.graphics.Paint
 import androidx.compose.foundation.Canvas
-import androidx.compose.runtime.Composable
+import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
@@ -22,24 +22,32 @@ internal fun Chart(
     leftBound: Float,
     rightBound: Float,
     labelSettings: LabelSettings? = null
-) = Canvas(modifier) {
-    val xLabelsHeight = labelSettings?.run { (labelSize + xLabelsTopPadding).toPx() } ?: 0f
-    val chartHeight = size.height - xLabelsHeight
+) {
+    var chartWidth by remember { mutableStateOf(0f) }
+    var chartHeight by remember { mutableStateOf(0f) }
 
-    val yLineCoords = labelSettings?.let { drawLines(chartHeight, it) }
+    val paths = data.calcPaths(chartWidth, chartHeight, leftBound, rightBound)?.value
+    Canvas(modifier) {
+        chartWidth = size.width
+        val xLabelsHeight = labelSettings?.run { (labelSize + xLabelsTopPadding).toPx() } ?: 0f
+        chartHeight = size.height - xLabelsHeight
 
-    data.calcPaths(size.width, chartHeight, leftBound, rightBound)
-        .forEach { (path, color) ->
+        if (paths == null) return@Canvas
+
+        val yLineCoords = labelSettings?.let { drawLines(chartHeight, it) }
+
+        paths.forEachIndexed { i, path ->
             drawPath(
                 path = path,
-                color = color,
+                color = data.colors[i],
                 style = Stroke(5f)
             )
         }
 
-    yLineCoords?.also {
-        drawYLabels(it, data, labelSettings)
-        drawXLabels(data, labelSettings.xLabelsFormatter)
+        yLineCoords?.also {
+            drawYLabels(it, data, labelSettings)
+            drawXLabels(data, labelSettings.xLabelsFormatter)
+        }
     }
 }
 

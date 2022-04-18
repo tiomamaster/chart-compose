@@ -2,6 +2,11 @@ package com.gmail.tiomamaster.chart.compose
 
 import android.graphics.Paint
 import android.graphics.Rect
+import androidx.compose.animation.core.animateIntAsState
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.State
+import androidx.compose.runtime.derivedStateOf
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
 import kotlin.math.roundToInt
@@ -34,12 +39,15 @@ data class ChartData<X : Number, Y : Number>(
         require(labels.size == y.size) { "Labels list and y list should have the same size" }
     }
 
+    @Composable
     fun calcPaths(
         chartWidth: Float,
         chartHeight: Float,
         leftBound: Float,
         rightBound: Float
-    ): List<Pair<Path, Color>> {
+    ): State<List<Path>>? {
+        if (chartWidth == 0f || chartHeight == 0f) return null
+
         width = chartWidth
         leftBoundInd = (x.size * leftBound / chartWidth).toInt()
         rightBoundInd = (x.size * rightBound / chartWidth).roundToInt()
@@ -50,14 +58,20 @@ data class ChartData<X : Number, Y : Number>(
             .maxByOrNull { it!!.toLong() }!!.toLong()
         kY = chartHeight / (yMax - yMin)
         val xCoordinates = calcXCoordinates()
-        return yBounded.mapIndexed { i, y ->
-            Path().apply {
-                xCoordinates.forEachIndexed { i, xCoord ->
-                    val yCoord = y[i].yCoord
-                    if (i == 0) moveTo(xCoord, yCoord)
-                    else lineTo(xCoord, yCoord)
+
+        val animYMin by animateIntAsState(yMin.toInt())
+        val animYMax by animateIntAsState(yMax.toInt())
+        return derivedStateOf {
+            val animKY = chartHeight / (animYMax - animYMin)
+            yBounded.mapIndexed { i, y ->
+                Path().apply {
+                    xCoordinates.forEachIndexed { i, xCoord ->
+                        val yCoord = (animYMax - y[i.coerceAtMost(y.lastIndex)].toLong()) * animKY
+                        if (i == 0) moveTo(xCoord, yCoord)
+                        else lineTo(xCoord, yCoord)
+                    }
                 }
-            } to colors[i]
+            }
         }
     }
 
