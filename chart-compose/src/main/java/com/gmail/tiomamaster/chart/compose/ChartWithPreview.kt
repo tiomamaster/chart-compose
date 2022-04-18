@@ -27,7 +27,7 @@ fun ChartWithPreview(
     val bigChartHeight = this@BoxWithConstraints.maxHeight * 3 / 4
     val labelSize = 14.dp
     val yLabelsStartPadding = 16.dp
-    val xLabelsTopPadding = 8.dp
+    val xLabelsTopPadding = 2.dp
 
     Column {
         var leftBound by remember { mutableStateOf(0f) }

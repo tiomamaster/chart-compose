@@ -1,6 +1,6 @@
 package com.gmail.tiomamaster.chart.view
 
-data class Chart(
+data class SampleData(
     val colors: Colors?,
     val columns: List<Any>?,
     val names: Names?,

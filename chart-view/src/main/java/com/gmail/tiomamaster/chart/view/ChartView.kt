@@ -12,7 +12,7 @@ import java.text.SimpleDateFormat
 class ChartView(context: Context) : View(context) {
 
     @Suppress("UNCHECKED_CAST")
-    var chart: Chart? = null
+    var sampleData: SampleData? = null
         set(value) {
             field = value
             x = (field?.columns?.get(0) as Iterable<*>).drop(1) as List<Float>

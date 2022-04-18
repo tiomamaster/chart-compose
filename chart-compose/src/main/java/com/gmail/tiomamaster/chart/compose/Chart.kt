@@ -76,16 +76,14 @@ private fun DrawScope.drawYLabels(
     yLineCoords: List<Float>,
     data: ChartData<Number, Number>,
     labelSettings: LabelSettings
-) {
-    yLineCoords.forEach { y ->
-        drawIntoCanvas {
-            it.nativeCanvas.drawText(
-                data.getYValueByCoord(y).toString(),
-                labelSettings.yLabelsStartPadding.toPx(),
-                y - 4.dp.toPx(),
-                getLabelsPaint(labelSettings.labelSize.toPx())
-            )
-        }
+) = yLineCoords.forEach { y ->
+    drawIntoCanvas {
+        it.nativeCanvas.drawText(
+            data.getYValueByCoord(y).toString(),
+            labelSettings.yLabelsStartPadding.toPx(),
+            y - 4.dp.toPx(),
+            getLabelsPaint(labelSettings.labelSize.toPx())
+        )
     }
 }
 
@@ -107,10 +105,8 @@ private fun getLabelsPaint(txtSize: Float): Paint {
 private fun DrawScope.drawXLabels(
     data: ChartData<Number, Number>,
     formatter: ((xValue: Number) -> String)
-) {
-    data.getXLabels(labelsPaint!!, size.width, formatter).forEach { (coord, text) ->
-        drawIntoCanvas {
-            it.nativeCanvas.drawText(text, coord, size.height, labelsPaint!!)
-        }
+) = data.getXLabels(labelsPaint!!, size.width, formatter).forEach { (coord, text) ->
+    drawIntoCanvas {
+        it.nativeCanvas.drawText(text, coord, size.height, labelsPaint!!)
     }
 }

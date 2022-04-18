@@ -63,7 +63,7 @@ data class ChartData<X : Number, Y : Number>(
         val animYMax by animateIntAsState(yMax.toInt())
         return derivedStateOf {
             val animKY = chartHeight / (animYMax - animYMin)
-            yBounded.mapIndexed { i, y ->
+            yBounded.map { y ->
                 Path().apply {
                     xCoordinates.forEachIndexed { i, xCoord ->
                         val yCoord = (animYMax - y[i.coerceAtMost(y.lastIndex)].toLong()) * animKY

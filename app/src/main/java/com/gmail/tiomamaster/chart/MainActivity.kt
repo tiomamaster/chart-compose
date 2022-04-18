@@ -11,8 +11,9 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import com.gmail.tiomamaster.chart.compose.ChartData
 import com.gmail.tiomamaster.chart.compose.ChartWithPreview
-import com.gmail.tiomamaster.chart.view.Chart
+import com.gmail.tiomamaster.chart.view.SampleData
 import com.google.gson.Gson
+import com.google.gson.JsonArray
 import java.nio.charset.Charset
 import java.text.SimpleDateFormat
 
@@ -21,29 +22,37 @@ class MainActivity : ComponentActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        val columnStr = resources.openRawResource(
-            resources.getIdentifier("column", "raw", packageName)
+        val samplesStr = resources.openRawResource(
+            resources.getIdentifier("chart_data", "raw", packageName)
         ).readBytes().toString(Charset.defaultCharset())
-        val gson = Gson()
-        val chart = gson.fromJson(columnStr, Chart::class.java)
-        val x = (chart?.columns?.get(0) as? Iterable<*>)?.drop(1) as? List<Long>
-        val y = (chart?.columns?.get(1) as? Iterable<*>)?.drop(1) as? List<Long>
-        val y2 = (chart?.columns?.get(2) as? Iterable<*>)?.drop(1) as? List<Long>
-        val y3 = (chart?.columns?.get(3) as? Iterable<*>)?.drop(1) as? List<Long>
-        val y4 = (chart?.columns?.get(4) as? Iterable<*>)?.drop(1) as? List<Long>
-//        val v = ChartView(this)
-//        setContentView(v)
-//        v.chart = chart
-        setContent {
-            ChartWithPreviewDemo(
-                ChartData(
-                    x!!,
-                    listOf(y!!, y2!!, y3!!, y4!!),
-                    listOf(Color.Blue, Color.Red, Color.Green, Color.Magenta),
-                    listOf("1", "2", "3", "4")
-                )
+        val sampleDataNum = 4
+        val sampleData = with(Gson()) {
+            fromJson(
+                fromJson(samplesStr, JsonArray::class.java)[sampleDataNum].asJsonObject,
+                SampleData::class.java
             )
         }
+
+        val x = (sampleData.columns!![0] as Iterable<*>).drop(1) as List<Long>
+        val y = sampleData.columns!!.drop(1).map { (it as Iterable<*>).drop(1) as List<Long> }
+        val colors = listOfNotNull(
+            sampleData.colors?.y0,
+            sampleData.colors?.y1,
+            sampleData.colors?.y2,
+            sampleData.colors?.y3
+        ).map { Color(android.graphics.Color.parseColor(it)) }
+        val labels = listOfNotNull(
+            sampleData.names?.y0,
+            sampleData.names?.y1,
+            sampleData.names?.y2,
+            sampleData.names?.y3
+        )
+        setContent {
+            ChartWithPreviewDemo(ChartData(x, y, colors, labels))
+        }
+//        val v = ChartView(this)
+//        setContentView(v)
+//        v.sampleData = sampleData
     }
 
     @Suppress("FunctionName")
