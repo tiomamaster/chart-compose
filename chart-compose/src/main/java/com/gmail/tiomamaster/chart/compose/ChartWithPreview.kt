@@ -24,7 +24,7 @@ fun ChartWithPreview(
     val widthPx = maxWidth.toPx()
     val bigChartPaddingEnd = 16.dp
     val bigChartWidthPx = widthPx - bigChartPaddingEnd.toPx()
-    val bigChartHeight = this@BoxWithConstraints.maxHeight * 3 / 4
+    val bigChartHeight = this@BoxWithConstraints.maxHeight * 4 / 6
     val labelSize = 14.dp
     val yLabelsStartPadding = 16.dp
     val xLabelsTopPadding = 2.dp
@@ -34,6 +34,10 @@ fun ChartWithPreview(
         var rightBound by remember { mutableStateOf(bigChartWidthPx) }
         var touchXCoord by remember { mutableStateOf(-1f) }
         var isDetailsVisible by remember { mutableStateOf(false) }
+        val selected = remember { mutableStateListOf(*Array(data.colors.size) { true }) }
+        val selectedCount by derivedStateOf { selected.count { it } }
+        val selectedColors by derivedStateOf { data.getSelectedColors(selected) }
+        val selectedLabels by derivedStateOf { data.getSelectedLabels(selected) }
 
         Box(Modifier.height(IntrinsicSize.Max)) {
             Chart(
@@ -58,6 +62,8 @@ fun ChartWithPreview(
                         )
                     },
                 data,
+                selected,
+                selectedColors,
                 leftBound,
                 rightBound,
                 LabelSettings(labelSize, yLabelsStartPadding, xLabelsTopPadding, xLabelsFormatter)
@@ -71,10 +77,10 @@ fun ChartWithPreview(
                 detailsData?.xCoord?.roundToInt() ?: (widthPx / 2).roundToInt(),
                 widthPx.roundToInt(),
                 detailsData?.title ?: "",
-                data.colors,
-                data.labels,
-                detailsData?.yCoords ?: List(data.colors.size) { 0f },
-                detailsData?.yValues ?: List(data.colors.size) { 0f }
+                selectedColors,
+                selectedLabels,
+                detailsData?.yCoords ?: List(selectedColors.size) { 0f },
+                detailsData?.yValues ?: List(selectedColors.size) { 0f }
             ) {
                 touchXCoord = -1f
             }
@@ -83,10 +89,13 @@ fun ChartWithPreview(
         Spacer(Modifier.height(16.dp))
 
         ChartPreview(
-            data.copy(),
             Modifier
+                .height(bigChartHeight / 4)
                 .fillMaxWidth()
                 .padding(start = 16.dp, end = 16.dp),
+            data.copy(),
+            selected,
+            selectedColors,
             widthPx - 32.dp.toPx(),
             bigChartWidthPx
         ) { left, right ->
@@ -94,6 +103,10 @@ fun ChartWithPreview(
             rightBound = right
             isDetailsVisible = false
         }
+
+        Spacer(Modifier.height(16.dp))
+
+        ChartSelectors(data, selected, selectedCount)
     }
 }
 

@@ -11,6 +11,7 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicText
 import androidx.compose.runtime.*
+import androidx.compose.runtime.snapshots.SnapshotStateList
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -22,8 +23,10 @@ import kotlin.math.roundToInt
 
 @Composable
 internal fun ChartPreview(
-    data: ChartData<Number, Number>,
     modifier: Modifier = Modifier,
+    data: ChartData<Number, Number>,
+    selectedCharts: SnapshotStateList<Boolean>,
+    selectedColors: List<Color>,
     width: Float,
     bigChartWidth: Float,
     onBoundsChanged: (left: Float, right: Float) -> Unit
@@ -39,6 +42,8 @@ internal fun ChartPreview(
             .fillMaxSize()
             .padding(start = boundWidth, end = boundWidth),
         data,
+        selectedCharts,
+        selectedColors,
         0f,
         width - boundWidthPx * 2
     )

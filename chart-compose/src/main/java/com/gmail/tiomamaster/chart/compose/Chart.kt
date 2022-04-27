@@ -5,6 +5,7 @@ package com.gmail.tiomamaster.chart.compose
 import android.graphics.Paint
 import androidx.compose.foundation.Canvas
 import androidx.compose.runtime.*
+import androidx.compose.runtime.snapshots.SnapshotStateList
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
@@ -19,6 +20,8 @@ import androidx.compose.ui.unit.dp
 internal fun Chart(
     modifier: Modifier = Modifier,
     data: ChartData<Number, Number>,
+    selectedCharts: SnapshotStateList<Boolean>,
+    selectedColors: List<Color>,
     leftBound: Float,
     rightBound: Float,
     labelSettings: LabelSettings? = null
@@ -26,7 +29,8 @@ internal fun Chart(
     var chartWidth by remember { mutableStateOf(0f) }
     var chartHeight by remember { mutableStateOf(0f) }
 
-    val paths = data.calcPaths(chartWidth, chartHeight, leftBound, rightBound)?.value
+    val paths =
+        data.calcPaths(selectedCharts, chartWidth, chartHeight, leftBound, rightBound)?.value
     Canvas(modifier) {
         chartWidth = size.width
         val xLabelsHeight = labelSettings?.run { (labelSize + xLabelsTopPadding).toPx() } ?: 0f
@@ -39,7 +43,7 @@ internal fun Chart(
         paths.forEachIndexed { i, path ->
             drawPath(
                 path = path,
-                color = data.colors[i],
+                color = selectedColors[i],
                 style = Stroke(5f)
             )
         }

@@ -7,6 +7,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.State
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.snapshots.SnapshotStateList
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
 import kotlin.math.roundToInt
@@ -41,6 +42,7 @@ data class ChartData<X : Number, Y : Number>(
 
     @Composable
     fun calcPaths(
+        selectedCharts: SnapshotStateList<Boolean>,
         chartWidth: Float,
         chartHeight: Float,
         leftBound: Float,
@@ -51,7 +53,8 @@ data class ChartData<X : Number, Y : Number>(
         width = chartWidth
         leftBoundInd = (x.size * leftBound / chartWidth).toInt()
         rightBoundInd = (x.size * rightBound / chartWidth).roundToInt()
-        yBounded = y.map { it.subList(leftBoundInd, rightBoundInd) }
+
+        yBounded = y.selected(selectedCharts).map { it.subList(leftBoundInd, rightBoundInd) }
         val yMin = yBounded.map { list -> list.minByOrNull { it.toLong() } }
             .minByOrNull { it!!.toLong() }!!.toLong()
         yMax = yBounded.map { list -> list.maxByOrNull { it.toLong() } }
@@ -74,6 +77,14 @@ data class ChartData<X : Number, Y : Number>(
             }
         }
     }
+
+    private fun calcXCoordinates(): List<Float> =
+        x.subList(leftBoundInd, rightBoundInd).also { xBounded = it }.run {
+            val xMin = first().toLong()
+            xMax = last().toLong()
+            kX = width / (xMax - xMin)
+            map { x -> x.xCoord }
+        }
 
     fun getYValueByCoord(yCoord: Float): Long = (yMax - yCoord / kY).toLong()
 
@@ -121,11 +132,12 @@ data class ChartData<X : Number, Y : Number>(
         return rect.width()
     }
 
-    private fun calcXCoordinates(): List<Float> =
-        x.subList(leftBoundInd, rightBoundInd).also { xBounded = it }.run {
-            val xMin = first().toLong()
-            xMax = last().toLong()
-            kX = width / (xMax - xMin)
-            map { x -> x.xCoord }
-        }
+    fun getSelectedColors(selectedCharts: SnapshotStateList<Boolean>) =
+        colors.selected(selectedCharts)
+
+    fun getSelectedLabels(selectedCharts: SnapshotStateList<Boolean>) =
+        labels.selected(selectedCharts)
+
+    private fun <T> List<T>.selected(selectedCharts: SnapshotStateList<Boolean>) =
+        selectedCharts.mapIndexedNotNull { i, isSelected -> if (isSelected) this[i] else null }
 }
