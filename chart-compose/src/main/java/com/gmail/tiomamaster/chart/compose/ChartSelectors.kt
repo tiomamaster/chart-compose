@@ -20,8 +20,7 @@ import androidx.compose.ui.unit.dp
 @Composable
 fun ChartSelectors(
     data: ChartData<Number, Number>,
-    selected: SnapshotStateList<Boolean>,
-    selectedCount: Int
+    selected: SnapshotStateList<Boolean>
 ) = ChipVerticalGrid(Modifier.padding(start = 16.dp, end = 16.dp), 8.dp) {
     data.labels.forEachIndexed { i, label ->
         val color = if (selected[i]) data.colors[i] else Color.LightGray
@@ -32,6 +31,7 @@ fun ChartSelectors(
                 .clip(CircleShape)
                 .clickable {
                     val new = !selected[i]
+                    val selectedCount = selected.count { it }
                     if (!new && selectedCount == 1) return@clickable
                     selected[i] = new
                 }

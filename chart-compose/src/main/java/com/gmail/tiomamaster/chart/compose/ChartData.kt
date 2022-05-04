@@ -2,14 +2,8 @@ package com.gmail.tiomamaster.chart.compose
 
 import android.graphics.Paint
 import android.graphics.Rect
-import androidx.compose.animation.core.animateIntAsState
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.State
-import androidx.compose.runtime.derivedStateOf
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.snapshots.SnapshotStateList
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.Path
 import kotlin.math.roundToInt
 
 data class ChartData<X : Number, Y : Number>(
@@ -19,17 +13,19 @@ data class ChartData<X : Number, Y : Number>(
     val labels: List<String>
 ) {
     private var width = 0f
-    private var leftBoundInd: Int = 0
-    private var rightBoundInd: Int = 0
+    private var height = 0f
     private lateinit var yBounded: List<List<Y>>
     private lateinit var xBounded: List<X>
+    private var yMin = 0L
     private var yMax = 0L
+    private var curYMax = 0L
     private var kY = 0f
-    private var xMax = 0L
-    private var kX = 0f
+    private var curKY = 0f
 
-    private val Y.yCoord get() = (yMax - toLong()) * kY
-    private val X.xCoord get() = width - (xMax - toLong()) * kX
+    private val Y.yCoord get() = (curYMax - toLong()) * curKY
+    private val xMin get() = xBounded.first().toLong()
+    private val xMax get() = xBounded.last().toLong()
+    private val X.xCoord get() = width - (xMax - toLong()) * (width / (xMax - xMin))
     private val Float.indexOfCoord get() = (this * xBounded.lastIndex / width).roundToInt()
 
     init {
@@ -40,53 +36,61 @@ data class ChartData<X : Number, Y : Number>(
         require(labels.size == y.size) { "Labels list and y list should have the same size" }
     }
 
-    @Composable
-    fun calcPaths(
-        selectedCharts: SnapshotStateList<Boolean>,
-        chartWidth: Float,
-        chartHeight: Float,
-        leftBound: Float,
-        rightBound: Float
-    ): State<List<Path>>? {
-        if (chartWidth == 0f || chartHeight == 0f) return null
-
+    fun getOffsets(chartWidth: Float, chartHeight: Float): List<List<Offset>> {
         width = chartWidth
-        leftBoundInd = (x.size * leftBound / chartWidth).toInt()
-        rightBoundInd = (x.size * rightBound / chartWidth).roundToInt()
+        height = chartHeight
 
-        yBounded = y.selected(selectedCharts).map { it.subList(leftBoundInd, rightBoundInd) }
-        val yMin = yBounded.map { list -> list.minByOrNull { it.toLong() } }
+        yMin = y.map { list -> list.minByOrNull { it.toLong() } }
             .minByOrNull { it!!.toLong() }!!.toLong()
-        yMax = yBounded.map { list -> list.maxByOrNull { it.toLong() } }
+        yMax = y.map { list -> list.maxByOrNull { it.toLong() } }
             .maxByOrNull { it!!.toLong() }!!.toLong()
         kY = chartHeight / (yMax - yMin)
-        val xCoordinates = calcXCoordinates()
+        val xCoordinates = x.run {
+            xBounded = this
+            map { x -> x.xCoord }
+        }
 
-        val animYMin by animateIntAsState(yMin.toInt())
-        val animYMax by animateIntAsState(yMax.toInt())
-        return derivedStateOf {
-            val animKY = chartHeight / (animYMax - animYMin)
-            yBounded.map { y ->
-                Path().apply {
-                    xCoordinates.forEachIndexed { i, xCoord ->
-                        val yCoord = (animYMax - y[i.coerceAtMost(y.lastIndex)].toLong()) * animKY
-                        if (i == 0) moveTo(xCoord, yCoord)
-                        else lineTo(xCoord, yCoord)
-                    }
-                }
+        return y.map {
+            it.mapIndexed { index, y ->
+                val yCoord = (yMax - y.toLong()) * kY
+                Offset(xCoordinates[index], yCoord)
             }
         }
     }
 
-    private fun calcXCoordinates(): List<Float> =
-        x.subList(leftBoundInd, rightBoundInd).also { xBounded = it }.run {
-            val xMin = first().toLong()
-            xMax = last().toLong()
-            kX = width / (xMax - xMin)
-            map { x -> x.xCoord }
-        }
+    fun getTransforms(
+        selectedCharts: List<Boolean>,
+        leftBound: Float,
+        rightBound: Float
+    ): Transforms {
+        val leftBoundInd = (x.lastIndex * leftBound / width).toInt()
+        val rightBoundInd = (x.lastIndex * rightBound / width).roundToInt()
 
-    fun getYValueByCoord(yCoord: Float): Long = (yMax - yCoord / kY).toLong()
+        yBounded = y.selected(selectedCharts).map { it.subList(leftBoundInd, rightBoundInd + 1) }
+        xBounded = x.subList(leftBoundInd, rightBoundInd + 1)
+
+        val curYMin = yBounded.map { list -> list.minByOrNull { it.toLong() } }
+            .minByOrNull { it!!.toLong() }!!.toLong()
+        curYMax = yBounded.map { list -> list.maxByOrNull { it.toLong() } }
+            .maxByOrNull { it!!.toLong() }!!.toLong()
+        curKY = height / (curYMax - curYMin)
+
+        val scaleX = width / (rightBound - leftBound)
+        val scaleY = curKY / kY
+        val translateX = -leftBound * scaleX
+        val translateY = height - height * scaleY + (curYMin - yMin) * curKY
+
+        return Transforms(scaleX, scaleY, translateX, translateY)
+    }
+
+    data class Transforms(
+        val scaleX: Float,
+        val scaleY: Float,
+        val translateX: Float,
+        val translateY: Float
+    )
+
+    fun getYValueByCoord(yCoord: Float): Long = (curYMax - yCoord / curKY).toLong()
 
     fun getDetailsForCoord(
         touchXCoord: Float,
@@ -131,13 +135,5 @@ data class ChartData<X : Number, Y : Number>(
         getTextBounds(text, 0, text.lastIndex, rect)
         return rect.width()
     }
-
-    fun getSelectedColors(selectedCharts: SnapshotStateList<Boolean>) =
-        colors.selected(selectedCharts)
-
-    fun getSelectedLabels(selectedCharts: SnapshotStateList<Boolean>) =
-        labels.selected(selectedCharts)
-
-    private fun <T> List<T>.selected(selectedCharts: SnapshotStateList<Boolean>) =
-        selectedCharts.mapIndexedNotNull { i, isSelected -> if (isSelected) this[i] else null }
 }
+
