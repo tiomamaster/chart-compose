@@ -23,10 +23,13 @@ data class ChartData<X : Number, Y : Number>(
     private var curKY = 0f
 
     private val Y.yCoord get() = (curYMax - toLong()) * curKY
-    private val xMin get() = xBounded.first().toLong()
-    private val xMax get() = xBounded.last().toLong()
+    private val xMin get() = x.first().toLong()
+    private val xMax get() = x.last().toLong()
     private val X.xCoord get() = width - (xMax - toLong()) * (width / (xMax - xMin))
     private val Float.indexOfCoord get() = (this * xBounded.lastIndex / width).roundToInt()
+
+    private var scaleX = 1f
+    private var translateX = 0f
 
     init {
         y.forEach {
@@ -75,9 +78,9 @@ data class ChartData<X : Number, Y : Number>(
             .maxByOrNull { it!!.toLong() }!!.toLong()
         curKY = height / (curYMax - curYMin)
 
-        val scaleX = width / (rightBound - leftBound)
+        scaleX = width / (rightBound - leftBound)
         val scaleY = curKY / kY
-        val translateX = -leftBound * scaleX
+        translateX = -leftBound * scaleX
         val translateY = height - height * scaleY + (curYMin - yMin) * curKY
 
         return Transforms(scaleX, scaleY, translateX, translateY)
@@ -95,12 +98,22 @@ data class ChartData<X : Number, Y : Number>(
     fun getDetailsForCoord(
         touchXCoord: Float,
         xDetailsFormatter: (xValue: Number) -> String
-    ): DetailsData = with(touchXCoord.indexOfCoord) {
-        val yValues = yBounded.map { it[this] }
+    ): DetailsData {
+        var i = touchXCoord.indexOfCoord
+        var xCoord = xBounded[i].xCoord * scaleX + translateX
+        while (xCoord < 0 || xCoord > width) {
+            i = when {
+                xCoord < 0 -> i + 1
+                xCoord > width -> i - 1
+                else -> i
+            }
+            xCoord = xBounded[i].xCoord * scaleX + translateX
+        }
+        val yValues = yBounded.map { it[i] }
         val yCoords = yValues.map { it.yCoord }
-        DetailsData(
-            xDetailsFormatter(xBounded[this]),
-            xBounded[this].xCoord,
+        return DetailsData(
+            xDetailsFormatter(xBounded[i]),
+            xCoord,
             yCoords,
             yValues
         )

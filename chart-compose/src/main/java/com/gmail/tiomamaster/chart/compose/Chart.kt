@@ -101,7 +101,7 @@ internal fun Chart(
         } else {
             val yLineCoords = labelSettings?.let { drawLines(chartHeight, it) }
 
-            clipRect {
+            clipRect(bottom = chartHeight) {
                 drawIntoCanvas {
                     paths?.forEachIndexed { i, path ->
                         it.nativeCanvas.drawPath(

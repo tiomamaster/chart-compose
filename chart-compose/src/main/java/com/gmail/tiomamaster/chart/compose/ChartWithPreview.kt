@@ -92,7 +92,7 @@ fun ChartWithPreview(
         val chartPreviewData = remember { data.copy() }
         ChartPreview(
             Modifier
-                .height(bigChartHeight / 4)
+                .height(bigChartHeight / 5)
                 .fillMaxWidth()
                 .padding(start = 16.dp, end = 16.dp),
             chartPreviewData,
@@ -101,8 +101,8 @@ fun ChartWithPreview(
             widthPx - 32.dp.toPx(),
             bigChartWidthPx
         ) { left, right ->
-            leftBound = left
-            rightBound = right
+            leftBound = left.toInt().toFloat()
+            rightBound = right.roundToInt().toFloat()
             isDetailsVisible = false
         }
 
