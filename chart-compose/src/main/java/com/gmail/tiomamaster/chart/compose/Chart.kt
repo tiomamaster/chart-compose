@@ -103,6 +103,17 @@ internal fun Chart(
             chartHeight - it * (chartHeight - lineTopMargin) / linesCount
         }
     }
+    val labelsSize = labelSettings?.labelsSize?.toPx() ?: 0f
+    val xLabels = remember(labelSettings, canvasSize, animTranslateX, animScaleX) {
+        if (labelSettings == null) return@remember null
+        data.getXLabels(
+            getLabelsPaint(labelsSize),
+            canvasSize.width,
+            labelSettings.xLabelsFormatter
+        ).map {
+            it.coord * animScaleX + animTranslateX - it.offset to it.text
+        }
+    }
     Canvas(modifier) {
         if (canvasSize == Size.Zero) {
             canvasSize = size
@@ -140,11 +151,7 @@ internal fun Chart(
                         )
                     }
 
-                    data.getXLabels(
-                        labelsPaint!!,
-                        size.width,
-                        labelSettings!!.xLabelsFormatter
-                    ).forEach { (coord, text) ->
+                    xLabels?.forEach { (coord, text) ->
                         drawText(text, coord, size.height, labelsPaint!!)
                     }
                 }

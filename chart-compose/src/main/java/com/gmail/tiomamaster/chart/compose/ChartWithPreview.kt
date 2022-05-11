@@ -29,6 +29,9 @@ fun ChartWithPreview(
     val labelsSize = 14.dp
     val yLabelsStartPadding = 16.dp
     val xLabelsTopPadding = 2.dp
+    val labelSettings = remember {
+        LabelSettings(labelsSize, yLabelsStartPadding, xLabelsTopPadding, xLabelsFormatter)
+    }
 
     Column {
         var leftBound by remember { mutableStateOf(0f) }
@@ -67,7 +70,7 @@ fun ChartWithPreview(
                 selectedColorsArgb,
                 leftBound,
                 rightBound,
-                LabelSettings(labelsSize, yLabelsStartPadding, xLabelsTopPadding, xLabelsFormatter)
+                labelSettings
             )
 
             val detailsData = touchXCoord.takeUnless { it == -1f }

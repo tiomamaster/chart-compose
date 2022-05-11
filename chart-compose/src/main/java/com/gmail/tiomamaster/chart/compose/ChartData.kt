@@ -39,7 +39,7 @@ data class ChartData<X : Number, Y : Number>(
         require(labels.size == y.size) { "Labels list and y list should have the same size" }
     }
 
-    fun getOffsets(chartWidth: Float, chartHeight: Float): List<List<Offset>> {
+    internal fun getOffsets(chartWidth: Float, chartHeight: Float): List<List<Offset>> {
         width = chartWidth
         height = chartHeight
 
@@ -61,7 +61,7 @@ data class ChartData<X : Number, Y : Number>(
         }
     }
 
-    fun getTransforms(
+    internal fun getTransforms(
         selectedCharts: List<Boolean>,
         leftBound: Float,
         rightBound: Float
@@ -86,16 +86,16 @@ data class ChartData<X : Number, Y : Number>(
         return Transforms(scaleX, scaleY, translateX, translateY)
     }
 
-    data class Transforms(
+    internal data class Transforms(
         val scaleX: Float,
         val scaleY: Float,
         val translateX: Float,
         val translateY: Float
     )
 
-    fun getYValueByCoord(yCoord: Float): Long = (curYMax - yCoord / curKY).toLong()
+    internal fun getYValueByCoord(yCoord: Float): Long = (curYMax - yCoord / curKY).toLong()
 
-    fun getDetailsForCoord(
+    internal fun getDetailsForCoord(
         touchXCoord: Float,
         xDetailsFormatter: (xValue: Number) -> String
     ): DetailsData {
@@ -119,30 +119,33 @@ data class ChartData<X : Number, Y : Number>(
         )
     }
 
-    data class DetailsData(
+    internal data class DetailsData(
         val title: String,
         val xCoord: Float,
         val yCoords: List<Float>,
         val yValues: List<Number>
     )
 
-    fun getXLabels(
+    internal fun getXLabels(
         paint: Paint,
         width: Float,
         formatter: (xValue: X) -> String
-    ): List<Pair<Float, String>> {
-        val maxCountOfXLabels = (width / (paint.textSize * 6)).roundToInt()
-        val labelMaxWidth = width / maxCountOfXLabels
+    ): List<XLabel> {
+        val xLabelsStartCount = (width / (paint.textSize * 6)).roundToInt()
+        val xLabelsCurCount = xLabelsStartCount * scaleX.roundToInt()
+        val labelMaxWidth = width / xLabelsCurCount
         val textRect = Rect()
-        return List(maxCountOfXLabels) {
-            val center =
+        return List(xLabelsCurCount) {
+            val coord =
                 if (it == 0) labelMaxWidth / 2 else (it + 1) * labelMaxWidth - labelMaxWidth / 2
-            val i = center.indexOfCoord
-            val text = formatter(xBounded[i])
-            val coord = center - (paint.calcLabelWidth(text, textRect) / 2)
-            coord to text
+            val i = (coord * x.lastIndex / width).roundToInt()
+            val text = formatter(x[i])
+            val offset = paint.calcLabelWidth(text, textRect).toFloat() / 2
+            XLabel(coord, offset, text)
         }
     }
+
+    internal data class XLabel(val coord: Float, val offset: Float, val text: String)
 
     private fun Paint.calcLabelWidth(text: String, rect: Rect): Int {
         getTextBounds(text, 0, text.lastIndex, rect)
