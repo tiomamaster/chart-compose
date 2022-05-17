@@ -11,7 +11,6 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import com.gmail.tiomamaster.chart.compose.ChartData
 import com.gmail.tiomamaster.chart.compose.ChartWithPreview
-import com.gmail.tiomamaster.chart.view.SampleData
 import com.google.gson.Gson
 import com.google.gson.JsonArray
 import java.nio.charset.Charset
@@ -34,7 +33,7 @@ class MainActivity : ComponentActivity() {
         }
 
         val x = (sampleData.columns!![0] as Iterable<*>).drop(1) as List<Long>
-        val y = sampleData.columns!!.drop(1).map { (it as Iterable<*>).drop(1) as List<Long> }
+        val y = sampleData.columns.drop(1).map { (it as Iterable<*>).drop(1) as List<Long> }
         val colors = listOfNotNull(
             sampleData.colors?.y0,
             sampleData.colors?.y1,
@@ -50,9 +49,6 @@ class MainActivity : ComponentActivity() {
         setContent {
             ChartWithPreviewDemo(ChartData(x, y, colors, labels))
         }
-//        val v = ChartView(this)
-//        setContentView(v)
-//        v.sampleData = sampleData
     }
 
     @Suppress("FunctionName")

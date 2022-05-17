@@ -6,5 +6,5 @@ pluginManagement {
     }
 }
 
-rootProject.name = "Chart"
-include(":app", ":chart-view", ":chart-compose")
+rootProject.name = "chart-compose"
+include(":app", ":chart-compose")

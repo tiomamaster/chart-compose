@@ -1,4 +1,4 @@
-package com.gmail.tiomamaster.chart.view
+package com.gmail.tiomamaster.chart
 
 data class SampleData(
     val colors: Colors?,
