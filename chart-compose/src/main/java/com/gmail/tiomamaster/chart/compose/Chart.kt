@@ -5,9 +5,7 @@ package com.gmail.tiomamaster.chart.compose
 import android.graphics.Matrix
 import android.graphics.Paint
 import android.graphics.Path
-import androidx.compose.animation.core.LinearEasing
-import androidx.compose.animation.core.animateFloatAsState
-import androidx.compose.animation.core.tween
+import androidx.compose.animation.core.*
 import androidx.compose.foundation.Canvas
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
@@ -31,20 +29,17 @@ private val chartPaint = Paint().apply {
     strokeWidth = chartStrokeWidth
 }
 
-private var labelsPaint: Paint? = null
-private fun getLabelsPaint(txtSize: Float): Paint {
-    if (labelsPaint == null) labelsPaint = Paint().apply {
-        isAntiAlias = true
-        isDither = true
-        style = Paint.Style.FILL
-        strokeJoin = Paint.Join.ROUND
-        strokeCap = Paint.Cap.ROUND
-        strokeWidth = 0f
-        textSize = txtSize
-        color = android.graphics.Color.GRAY
-    }
-    return labelsPaint!!
+private var labelsPaint: Paint = Paint().apply {
+    isAntiAlias = true
+    isDither = true
+    style = Paint.Style.FILL
+    strokeJoin = Paint.Join.ROUND
+    strokeCap = Paint.Cap.ROUND
+    strokeWidth = 0f
+    color = android.graphics.Color.GRAY
 }
+private val xLabelsAppearPaint = Paint(labelsPaint)
+private val xLabelsDisappearPaint = Paint(labelsPaint)
 
 @Composable
 internal fun Chart(
@@ -103,15 +98,37 @@ internal fun Chart(
             chartHeight - it * (chartHeight - lineTopMargin) / linesCount
         }
     }
+    var xLabelsToAppear: List<Pair<Float, String>>? by remember { mutableStateOf(null) }
+    var xLabelsToDisappear: List<Pair<Float, String>>? by remember { mutableStateOf(null) }
+    var changeAlpha by remember { mutableStateOf(true) }
+    val animAlpha by animateIntAsState(
+        if (changeAlpha) 0 else 255,
+        spring(stiffness = Spring.StiffnessVeryLow)
+    )
+    remember(changeAlpha, animAlpha) {
+        xLabelsAppearPaint.alpha = if (changeAlpha) 255 - animAlpha else animAlpha
+        xLabelsDisappearPaint.alpha = if (changeAlpha) animAlpha else 255 - animAlpha
+    }
     val labelsSize = labelSettings?.labelsSize?.toPx() ?: 0f
-    val xLabels = remember(labelSettings, canvasSize, animTranslateX, animScaleX) {
+    remember(labelSettings, canvasSize, animTranslateX, animScaleX) {
         if (labelSettings == null) return@remember null
+        labelsPaint.textSize = labelsSize
+        xLabelsAppearPaint.textSize = labelsSize
+        xLabelsDisappearPaint.textSize = labelsSize
         data.getXLabels(
-            getLabelsPaint(labelsSize),
+            labelsPaint,
             canvasSize.width,
             labelSettings.xLabelsFormatter
         ).map {
             it.coord * animScaleX + animTranslateX - it.offset to it.text
+        }.also {
+            if (xLabelsToAppear?.size != it.size && it.isNotEmpty()) {
+                xLabelsAppearPaint.alpha = 0
+                xLabelsDisappearPaint.alpha = 255
+                changeAlpha = !changeAlpha
+                xLabelsToDisappear = xLabelsToAppear
+            }
+            xLabelsToAppear = it
         }
     }
     Canvas(modifier) {
@@ -147,12 +164,14 @@ internal fun Chart(
                             data.getYValueByCoord(y).toString(),
                             labelSettings!!.yLabelsStartPadding.toPx(),
                             y,
-                            getLabelsPaint(labelSettings.labelsSize.toPx())
+                            labelsPaint
                         )
                     }
-
-                    xLabels?.forEach { (coord, text) ->
-                        drawText(text, coord, size.height, labelsPaint!!)
+                    xLabelsToAppear?.forEach { (coord, text) ->
+                        drawText(text, coord, size.height, xLabelsAppearPaint)
+                    }
+                    xLabelsToDisappear?.forEach { (coord, text) ->
+                        drawText(text, coord, size.height, xLabelsDisappearPaint)
                     }
                 }
             }
