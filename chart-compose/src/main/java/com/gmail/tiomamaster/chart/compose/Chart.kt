@@ -32,10 +32,6 @@ private val chartPaint = Paint().apply {
 private var labelsPaint: Paint = Paint().apply {
     isAntiAlias = true
     isDither = true
-    style = Paint.Style.FILL
-    strokeJoin = Paint.Join.ROUND
-    strokeCap = Paint.Cap.ROUND
-    strokeWidth = 0f
     color = android.graphics.Color.GRAY
 }
 private val xLabelsAppearPaint = Paint(labelsPaint)
