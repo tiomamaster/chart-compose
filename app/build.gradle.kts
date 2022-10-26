@@ -5,18 +5,18 @@ plugins {
 
 dependencies {
     implementation(project(":chart-compose"))
-    implementation("androidx.appcompat:appcompat:1.4.1")
-    implementation("androidx.activity:activity-compose:1.4.0")
-    implementation("androidx.compose.foundation:foundation:1.1.1")
+    implementation("androidx.appcompat:appcompat:1.5.1")
+    implementation("androidx.activity:activity-compose:1.6.1")
+    implementation("androidx.compose.foundation:foundation:1.3.0")
     implementation("com.google.code.gson:gson:2.8.9")
 }
 
 android {
-    compileSdk = 31
+    compileSdk = 33
     defaultConfig {
         applicationId = "com.gmail.tiomamaster.chart"
         minSdk = 21
-        targetSdk = 31
+        targetSdk = 33
         versionCode = 1
         versionName = "0.1"
         vectorDrawables {
@@ -43,7 +43,7 @@ android {
     }
 
     composeOptions {
-        kotlinCompilerExtensionVersion = "1.1.1"
+        kotlinCompilerExtensionVersion = "1.3.2"
     }
 
     packagingOptions {

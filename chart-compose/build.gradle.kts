@@ -4,18 +4,19 @@ plugins {
 }
 
 dependencies {
-    implementation("androidx.appcompat:appcompat:1.4.1")
-    implementation("androidx.compose.ui:ui:1.1.1")
-    implementation("androidx.compose.ui:ui-tooling:1.1.1")
-    implementation("androidx.compose.runtime:runtime:1.1.1")
-    implementation("androidx.compose.foundation:foundation:1.1.1")
+    implementation("androidx.appcompat:appcompat:1.5.1")
+    val composeVersion = "1.3.0"
+    implementation("androidx.compose.ui:ui:$composeVersion")
+    implementation("androidx.compose.ui:ui-tooling:$composeVersion")
+    implementation("androidx.compose.runtime:runtime:$composeVersion")
+    implementation("androidx.compose.foundation:foundation:$composeVersion")
 }
 
 android {
-    compileSdk = 31
+    compileSdk = 33
     defaultConfig {
         minSdk = 21
-        targetSdk = 31
+        targetSdk = 33
     }
 
     buildTypes {
@@ -37,7 +38,7 @@ android {
     }
 
     composeOptions {
-        kotlinCompilerExtensionVersion = "1.1.1"
+        kotlinCompilerExtensionVersion = "1.3.2"
     }
 
     packagingOptions {
