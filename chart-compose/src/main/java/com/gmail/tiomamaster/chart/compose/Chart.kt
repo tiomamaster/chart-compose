@@ -34,8 +34,6 @@ private var labelsPaint: Paint = Paint().apply {
     isDither = true
     color = android.graphics.Color.GRAY
 }
-private val xLabelsAppearPaint = Paint(labelsPaint)
-private val xLabelsDisappearPaint = Paint(labelsPaint)
 
 @Composable
 internal fun Chart(
@@ -101,12 +99,16 @@ internal fun Chart(
         if (changeAlpha) 0 else 255,
         spring(stiffness = Spring.StiffnessVeryLow)
     )
-    remember(changeAlpha, animAlpha) {
-        xLabelsAppearPaint.alpha = if (changeAlpha) 255 - animAlpha else animAlpha
-        xLabelsDisappearPaint.alpha = if (changeAlpha) animAlpha else 255 - animAlpha
+    val xLabelsAppearPaint by remember(animAlpha) {
+        val p = Paint(labelsPaint).apply { alpha = if (changeAlpha) 255 - animAlpha else animAlpha }
+        mutableStateOf(p)
+    }
+    val xLabelsDisappearPaint by remember(animAlpha) {
+        val p = Paint(labelsPaint).apply { alpha = if (changeAlpha) animAlpha else 255 - animAlpha }
+        mutableStateOf(p)
     }
     val labelsSize = labelSettings?.labelsSize?.toPx() ?: 0f
-    remember(labelSettings, canvasSize, animTranslateX, animScaleX) {
+    xLabelsToAppear = remember(labelSettings, canvasSize, animTranslateX, animScaleX) {
         if (labelSettings == null) return@remember null
         labelsPaint.textSize = labelsSize
         xLabelsAppearPaint.textSize = labelsSize
@@ -124,7 +126,6 @@ internal fun Chart(
                 changeAlpha = !changeAlpha
                 xLabelsToDisappear = xLabelsToAppear
             }
-            xLabelsToAppear = it
         }
     }
     Canvas(modifier) {
@@ -147,7 +148,8 @@ internal fun Chart(
                     paths?.forEachIndexed { i, path ->
                         it.nativeCanvas.drawPath(
                             path,
-                            chartPaint.apply { color = selectedColors[i] })
+                            chartPaint.apply { color = selectedColors[i] }
+                        )
                     }
                 }
             }

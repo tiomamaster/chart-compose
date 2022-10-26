@@ -102,11 +102,8 @@ data class ChartData<X : Number, Y : Number>(
         var i = touchXCoord.indexOfCoord
         var xCoord = xBounded[i].xCoord * scaleX + translateX
         while (xCoord < 0 || xCoord > width) {
-            i = when {
-                xCoord < 0 -> i + 1
-                xCoord > width -> i - 1
-                else -> i
-            }
+            i = if (xCoord < 0) i + 1
+            else i - 1
             xCoord = xBounded[i].xCoord * scaleX + translateX
         }
         val yValues = yBounded.map { it[i] }
@@ -140,16 +137,15 @@ data class ChartData<X : Number, Y : Number>(
                 if (it == 0) labelMaxWidth / 2 else (it + 1) * labelMaxWidth - labelMaxWidth / 2
             val i = (coord * x.lastIndex / width).roundToInt()
             val text = formatter(x[i])
-            val offset = paint.calcLabelWidth(text, textRect).toFloat() / 2
+            val offset = paint.calcLabelOffset(text, textRect)
             XLabel(coord, offset, text)
         }
     }
 
     internal data class XLabel(val coord: Float, val offset: Float, val text: String)
 
-    private fun Paint.calcLabelWidth(text: String, rect: Rect): Int {
+    private fun Paint.calcLabelOffset(text: String, rect: Rect): Float {
         getTextBounds(text, 0, text.lastIndex, rect)
-        return rect.width()
+        return rect.width().toFloat() / 2
     }
 }
-
