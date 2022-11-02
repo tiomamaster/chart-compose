@@ -86,11 +86,17 @@ internal fun Chart(
     }
     val lineTopMargin = 32.dp.toPx()
     val linesCount = 5
-    val lineYCoords = remember(chartHeight, labelSettings) {
-        if (labelSettings == null) return@remember null
-        List(linesCount + 1) {
-            chartHeight - it * (chartHeight - lineTopMargin) / linesCount
+    val lineYCoords =
+        remember(chartHeight, labelSettings, transforms?.translateY, transforms?.scaleY) {
+            if (labelSettings == null) return@remember null
+            List(linesCount + 1) {
+                ((chartHeight - it * (chartHeight - lineTopMargin) / linesCount) -
+                        (transforms?.translateY ?: 0f)) / (transforms?.scaleY ?: 1f)
+            }
         }
+    val lineYCoordsAnim = remember(lineYCoords, animTranslateY, animScaleY) {
+        if (labelSettings == null) return@remember null
+        lineYCoords?.map { it * animScaleY + animTranslateY }
     }
     var xLabelsToAppear: List<Pair<Float, String>>? by remember { mutableStateOf(null) }
     var xLabelsToDisappear: List<Pair<Float, String>>? by remember { mutableStateOf(null) }
@@ -132,7 +138,7 @@ internal fun Chart(
         if (canvasSize == Size.Zero) {
             canvasSize = size
         } else {
-            lineYCoords?.forEach {
+            lineYCoordsAnim?.forEach {
                 drawLine(
                     Color.LightGray,
                     Offset(labelSettings!!.yLabelsStartPadding.toPx(), it + chartStrokeWidth),
@@ -154,10 +160,10 @@ internal fun Chart(
                 }
             }
 
-            if (lineYCoords == null) return@Canvas
+            if (lineYCoordsAnim == null) return@Canvas
             drawIntoCanvas {
                 with(it.nativeCanvas) {
-                    lineYCoords.forEach { y ->
+                    lineYCoordsAnim.forEach { y ->
                         drawText(
                             data.getYValueByCoord(y).toString(),
                             labelSettings!!.yLabelsStartPadding.toPx(),
