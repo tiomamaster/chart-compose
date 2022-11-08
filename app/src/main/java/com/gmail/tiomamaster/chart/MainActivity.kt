@@ -21,9 +21,8 @@ class MainActivity : ComponentActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        val samplesStr = resources.openRawResource(
-            resources.getIdentifier("chart_data", "raw", packageName)
-        ).readBytes().toString(Charset.defaultCharset())
+        val samplesStr = resources.openRawResource(R.raw.chart_data).readBytes()
+            .toString(Charset.defaultCharset())
         val sampleDataNum = 4
         val sampleData = with(Gson()) {
             fromJson(
@@ -54,7 +53,7 @@ class MainActivity : ComponentActivity() {
     @Suppress("FunctionName")
     @SuppressLint("SimpleDateFormat")
     @Composable
-    private fun ChartWithPreviewDemo(data: ChartData<Number, Number>) {
+    private fun ChartWithPreviewDemo(data: ChartData<*, *>) {
         val labelsFormatter = SimpleDateFormat("MMM dd")
         val detailsFormatter = SimpleDateFormat("EE, dd MMM yyyy")
         ChartWithPreview(

@@ -23,7 +23,7 @@ import kotlin.math.roundToInt
 @Composable
 internal fun ChartPreview(
     modifier: Modifier = Modifier,
-    data: ChartData<Number, Number>,
+    data: ChartData<*, *>,
     selectedCharts: List<Boolean>,
     selectedColors: List<Int>,
     width: Float,

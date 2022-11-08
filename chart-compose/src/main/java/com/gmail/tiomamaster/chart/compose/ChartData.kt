@@ -6,26 +6,26 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import kotlin.math.roundToInt
 
-data class ChartData<X : Number, Y : Number>(
+data class ChartData<X, Y>(
     private val x: List<X>,
     private val y: List<List<Y>>,
     val colors: List<Color>,
     val labels: List<String>
-) {
+) where X : Number, X : Comparable<X>, Y : Number, Y : Comparable<Y> {
     private var width = 0f
     private var height = 0f
     private lateinit var yBounded: List<List<Y>>
     private lateinit var xBounded: List<X>
-    private var yMin = 0L
-    private var yMax = 0L
-    private var curYMax = 0L
+    private lateinit var yMin: Y
+    private lateinit var yMax: Y
+    private lateinit var curYMax: Y
     private var kY = 0f
     private var curKY = 0f
 
-    private val Y.yCoord get() = (curYMax - toLong()) * curKY
-    private val xMin get() = x.first().toLong()
-    private val xMax get() = x.last().toLong()
-    private val X.xCoord get() = width - (xMax - toLong()) * (width / (xMax - xMin))
+    private val Y.yCoord get() = (curYMax - this).toFloat() * curKY
+    private val xMin get() = x.first()
+    private val xMax get() = x.last()
+    private val X.xCoord get() = width - (xMax - this).toFloat() * (width / (xMax - xMin).toFloat())
     private val Float.indexOfCoord get() = (this * xBounded.lastIndex / width).roundToInt()
 
     private var scaleX = 1f
@@ -43,11 +43,9 @@ data class ChartData<X : Number, Y : Number>(
         width = chartWidth
         height = chartHeight
 
-        yMin = y.map { list -> list.minByOrNull { it.toLong() } }
-            .minByOrNull { it!!.toLong() }!!.toLong()
-        yMax = y.map { list -> list.maxByOrNull { it.toLong() } }
-            .maxByOrNull { it!!.toLong() }!!.toLong()
-        kY = chartHeight / (yMax - yMin)
+        yMin = y.minOf { it.min() }
+        yMax = y.maxOf { it.max() }
+        kY = chartHeight / (yMax.toFloat() - yMin.toFloat())
         val xCoordinates = x.run {
             xBounded = this
             map { x -> x.xCoord }
@@ -55,7 +53,7 @@ data class ChartData<X : Number, Y : Number>(
 
         return y.map {
             it.mapIndexed { index, y ->
-                val yCoord = (yMax - y.toLong()) * kY
+                val yCoord = (yMax - y).toFloat() * kY
                 Offset(xCoordinates[index], yCoord)
             }
         }
@@ -72,16 +70,14 @@ data class ChartData<X : Number, Y : Number>(
         yBounded = y.selected(selectedCharts).map { it.subList(leftBoundInd, rightBoundInd + 1) }
         xBounded = x.subList(leftBoundInd, rightBoundInd + 1)
 
-        val curYMin = yBounded.map { list -> list.minByOrNull { it.toLong() } }
-            .minByOrNull { it!!.toLong() }!!.toLong()
-        curYMax = yBounded.map { list -> list.maxByOrNull { it.toLong() } }
-            .maxByOrNull { it!!.toLong() }!!.toLong()
-        curKY = height / (curYMax - curYMin)
+        val curYMin = yBounded.minOf { it.min() }
+        curYMax = yBounded.maxOf { it.max() }
+        curKY = height / (curYMax - curYMin).toFloat()
 
         scaleX = width / (rightBound - leftBound)
         val scaleY = curKY / kY
         translateX = -leftBound * scaleX
-        val translateY = height - height * scaleY + (curYMin - yMin) * curKY
+        val translateY = height - height * scaleY + (curYMin - yMin).toFloat() * curKY
 
         return Transforms(scaleX, scaleY, translateX, translateY)
     }
@@ -93,7 +89,10 @@ data class ChartData<X : Number, Y : Number>(
         val translateY: Float
     )
 
-    internal fun getYValueByCoord(yCoord: Float): Long = (curYMax - yCoord / curKY).toLong()
+    internal fun getYLabelByCoord(yCoord: Float): String? {
+        if (!::curYMax.isInitialized) return null
+        return (curYMax - yCoord / curKY).toString()
+    }
 
     internal fun getDetailsForCoord(
         touchXCoord: Float,
@@ -147,5 +146,57 @@ data class ChartData<X : Number, Y : Number>(
     private fun Paint.calcLabelOffset(text: String, rect: Rect): Float {
         getTextBounds(text, 0, text.lastIndex, rect)
         return rect.width().toFloat() / 2
+    }
+
+    private operator fun Number.minus(other: Number): Number {
+        return when (this) {
+            is Float -> this.toFloat() - other.toFloat()
+            is Double -> this.toDouble() - other.toDouble()
+            is Int -> this.toInt() - other.toInt()
+            is Long -> this.toLong() - other.toLong()
+            else -> throw UnsupportedOperationException(
+                "${this::class} is not supported. Only Float, Double, Int and Long are supported " +
+                        "for ChartData.x and ChartData.y values"
+            )
+        }
+    }
+
+    private operator fun Number.plus(other: Number): Number {
+        return when (this) {
+            is Float -> this.toFloat() + other.toFloat()
+            is Double -> this.toDouble() + other.toDouble()
+            is Int -> this.toInt() + other.toInt()
+            is Long -> this.toLong() + other.toLong()
+            else -> throw UnsupportedOperationException(
+                "${this::class} is not supported. Only Float, Double, Int and Long are supported " +
+                        "for ChartData.x and ChartData.y values"
+            )
+        }
+    }
+
+    private operator fun Number.div(other: Number): Number {
+        return when (this) {
+            is Float -> this.toFloat() / other.toFloat()
+            is Double -> this.toDouble() / other.toDouble()
+            is Int -> this.toInt() / other.toInt()
+            is Long -> this.toLong() / other.toLong()
+            else -> throw UnsupportedOperationException(
+                "${this::class} is not supported. Only Float, Double, Int and Long are supported " +
+                        "for ChartData.x and ChartData.y values"
+            )
+        }
+    }
+
+    private operator fun Number.times(other: Number): Number {
+        return when (this) {
+            is Float -> this.toFloat() * other.toFloat()
+            is Double -> this.toDouble() * other.toDouble()
+            is Int -> this.toInt() * other.toInt()
+            is Long -> this.toLong() * other.toLong()
+            else -> throw UnsupportedOperationException(
+                "${this::class} is not supported. Only Float, Double, Int and Long are supported " +
+                        "for ChartData.x and ChartData.y values"
+            )
+        }
     }
 }

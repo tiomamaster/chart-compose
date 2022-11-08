@@ -18,7 +18,7 @@ import kotlin.math.roundToInt
 @Composable
 fun ChartWithPreview(
     modifier: Modifier = Modifier,
-    data: ChartData<Number, Number>,
+    data: ChartData<*, *>,
     xLabelsFormatter: (xValue: Number) -> String,
     xDetailsFormatter: (xValue: Number) -> String
 ) = BoxWithConstraints(modifier) {

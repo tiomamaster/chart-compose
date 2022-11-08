@@ -41,7 +41,7 @@ private var labelsPaint: Paint = Paint().apply {
 @Composable
 internal fun Chart(
     modifier: Modifier = Modifier,
-    data: ChartData<Number, Number>,
+    data: ChartData<*, *>,
     selectedCharts: List<Boolean>,
     selectedColors: List<Int>,
     leftBound: Float,
@@ -110,7 +110,7 @@ private fun getYLabels(
     chartHeight: Float,
     animTranslateY: Float,
     animScaleY: Float,
-    data: ChartData<Number, Number>
+    data: ChartData<*, *>
 ): AnimatedLabels? {
     if (labelSettings == null) return null
     val topMargin = 32.dp.toPx()
@@ -148,12 +148,12 @@ private fun getYLabels(
     }
     val labelsDisappear = remember(coordsDisappear, animTranslateY, animScaleY) {
         coordsDisappear.map { it * animScaleY + animTranslateY }.filter { it <= chartHeight }.map {
-            AnimatedLabel(it, it + chartStrokeWidth, data.getYValueByCoord(it).toString())
+            AnimatedLabel(it, it + chartStrokeWidth, data.getYLabelByCoord(it) ?: "")
         }
     }
     val labelsAppear = remember(coordsAppear, animTranslateY, animScaleY) {
         coordsAppear.map { it * animScaleY + animTranslateY }.filter { it <= chartHeight }.map {
-            AnimatedLabel(it, it + chartStrokeWidth, data.getYValueByCoord(it).toString())
+            AnimatedLabel(it, it + chartStrokeWidth, data.getYLabelByCoord(it) ?: "")
         }
     }
     return AnimatedLabels(labelsDisappear, labelsAppear, paintDisappear, paintAppear)
@@ -165,7 +165,7 @@ private fun getXLabels(
     canvasSize: Size,
     animTranslateX: Float,
     animScaleX: Float,
-    data: ChartData<Number, Number>
+    data: ChartData<*, *>
 ): AnimatedLabels? {
     if (labelSettings == null) return null
     var labelsAppear: List<AnimatedLabel> by remember { mutableStateOf(emptyList()) }

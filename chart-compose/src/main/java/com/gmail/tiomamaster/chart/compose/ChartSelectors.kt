@@ -19,7 +19,7 @@ import androidx.compose.ui.unit.dp
 
 @Composable
 fun ChartSelectors(
-    data: ChartData<Number, Number>,
+    data: ChartData<*, *>,
     selected: SnapshotStateList<Boolean>
 ) = ChipVerticalGrid(Modifier.padding(start = 16.dp, end = 16.dp), 8.dp) {
     data.labels.forEachIndexed { i, label ->
