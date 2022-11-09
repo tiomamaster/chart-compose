@@ -25,7 +25,6 @@ internal fun ChartPreview(
     modifier: Modifier = Modifier,
     data: ChartData<*, *>,
     selectedCharts: List<Boolean>,
-    selectedColors: List<Int>,
     width: Float,
     bigChartWidth: Float,
     onBoundsChanged: (left: Float, right: Float) -> Unit
@@ -42,7 +41,6 @@ internal fun ChartPreview(
             .padding(start = boundWidth, end = boundWidth),
         data,
         selectedCharts,
-        selectedColors,
         0f,
         width - boundWidthPx * 2
     )

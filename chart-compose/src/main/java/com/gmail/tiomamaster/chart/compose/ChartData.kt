@@ -4,6 +4,7 @@ import android.graphics.Paint
 import android.graphics.Rect
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.toArgb
 import kotlin.math.roundToInt
 
 data class ChartData<X, Y>(
@@ -31,12 +32,16 @@ data class ChartData<X, Y>(
     private var scaleX = 1f
     private var translateX = 0f
 
+    val colorsArgb: List<Int>
+
     init {
         y.forEach {
             require(x.size == it.size) { "Each list in y should have tha same size as x list" }
         }
         require(colors.size == y.size) { "Colors list and y list should have the same size" }
         require(labels.size == y.size) { "Labels list and y list should have the same size" }
+
+        colorsArgb = colors.map { it.toArgb() }
     }
 
     internal fun getOffsets(chartWidth: Float, chartHeight: Float): List<List<Offset>> {

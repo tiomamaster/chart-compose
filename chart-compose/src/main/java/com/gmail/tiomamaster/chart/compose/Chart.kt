@@ -43,7 +43,6 @@ internal fun Chart(
     modifier: Modifier = Modifier,
     data: ChartData<*, *>,
     selectedCharts: List<Boolean>,
-    selectedColors: List<Int>,
     leftBound: Float,
     rightBound: Float,
     labelSettings: LabelSettings? = null
@@ -75,18 +74,18 @@ internal fun Chart(
     val animScaleX by animateFloatAsState(transforms?.scaleX ?: 1f, animSpecX)
     val animScaleY by animateFloatAsState(transforms?.scaleY ?: 1f, animSpecY)
     val matrix = remember { Matrix() }
-    val paths by remember(sourcePaths, animTranslateX, animTranslateY, animScaleX, animScaleY) {
+    val paths = remember(sourcePaths, animTranslateX, animTranslateY, animScaleX, animScaleY) {
         matrix.reset()
         matrix.setTranslate(animTranslateX, animTranslateY)
         matrix.preScale(animScaleX, animScaleY)
-        derivedStateOf {
-            sourcePaths?.selected(selectedCharts)?.map {
-                Path().apply {
-                    it.transform(matrix, this)
-                }
+        sourcePaths?.map {
+            Path().apply {
+                it.transform(matrix, this)
             }
         }
     }
+    val pathAlphas =
+        selectedCharts.map { animateIntAsState(if (it) 255 else 0, animSpecYInt).value }
     labelsPaint.textSize = labelSettings?.labelsSize?.toPx() ?: 0f
     val yLabels =
         getYLabels(labelSettings, transforms, chartHeight, animTranslateY, animScaleY, data)
@@ -97,7 +96,7 @@ internal fun Chart(
             canvasSize = size
         } else {
             drawLines(yLabels, xLabels, labelSettings)
-            drawPaths(chartHeight, paths, selectedColors)
+            drawPaths(chartHeight, paths, data.colorsArgb, pathAlphas)
             drawLabels(yLabels, xLabels, labelSettings)
         }
     }
@@ -235,17 +234,21 @@ private fun DrawScope.drawVerticalLines(
     )
 }
 
-private fun DrawScope.drawPaths(chartHeight: Float, paths: List<Path>?, selectedColors: List<Int>) =
-    withTransform({
-        clipRect(bottom = chartHeight + chartStrokeWidth)
-        inset(0f, chartStrokeWidth / 2, 0f, chartStrokeWidth / 2)
-    }) {
-        drawIntoCanvas {
-            paths?.forEachIndexed { i, path ->
-                it.nativeCanvas.drawPath(path, chartPaint.apply { color = selectedColors[i] })
-            }
+private fun DrawScope.drawPaths(
+    chartHeight: Float, paths: List<Path>?, colors: List<Int>, alphas: List<Int>
+) = withTransform({
+    clipRect(bottom = chartHeight + chartStrokeWidth)
+    inset(0f, chartStrokeWidth / 2, 0f, chartStrokeWidth / 2)
+}) {
+    drawIntoCanvas {
+        paths?.forEachIndexed { i, path ->
+            it.nativeCanvas.drawPath(path, chartPaint.apply {
+                color = colors[i]
+                alpha = alphas[i]
+            })
         }
     }
+}
 
 private fun DrawScope.drawLabels(
     yLabels: AnimatedLabels?, xLabels: AnimatedLabels?, labelSettings: LabelSettings?

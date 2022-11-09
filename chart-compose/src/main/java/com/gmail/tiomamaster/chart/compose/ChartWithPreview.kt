@@ -40,7 +40,6 @@ fun ChartWithPreview(
         var isDetailsVisible by remember { mutableStateOf(false) }
         val selectedCharts = remember { mutableStateListOf(*Array(data.colors.size) { true }) }
         val selectedColors by remember(data.colors) { derivedStateOf { data.colors.selected(selectedCharts) } }
-        val selectedColorsArgb = remember(selectedColors) { selectedColors.map { it.toArgb() } }
         val selectedLabels by remember(data.labels) { derivedStateOf { data.labels.selected(selectedCharts) } }
 
         Box(Modifier.height(IntrinsicSize.Max)) {
@@ -67,7 +66,6 @@ fun ChartWithPreview(
                     },
                 data,
                 selectedCharts,
-                selectedColorsArgb,
                 leftBound,
                 rightBound,
                 labelSettings
@@ -100,7 +98,6 @@ fun ChartWithPreview(
                 .padding(start = 16.dp, end = 16.dp),
             chartPreviewData,
             selectedCharts,
-            selectedColorsArgb,
             widthPx - 32.dp.toPx(),
             bigChartWidthPx
         ) { left, right ->
