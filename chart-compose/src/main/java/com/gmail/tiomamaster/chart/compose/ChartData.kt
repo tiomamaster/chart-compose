@@ -8,8 +8,8 @@ import androidx.compose.ui.graphics.toArgb
 import kotlin.math.roundToInt
 
 data class ChartData<X, Y>(
-    private val x: List<X>,
-    private val y: List<List<Y>>,
+    val x: List<X>,
+    val y: List<List<Y>>,
     val colors: List<Color>,
     val labels: List<String>
 ) where X : Number, X : Comparable<X>, Y : Number, Y : Comparable<Y> {

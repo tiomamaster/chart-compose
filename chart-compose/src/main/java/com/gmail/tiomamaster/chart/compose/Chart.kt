@@ -52,11 +52,16 @@ internal fun Chart(
     val chartHeight = remember(labelSettings, canvasSize) {
         canvasSize.height - xLabelsHeight - chartStrokeWidth
     }
-    val sourcePaths = remember(data, canvasSize, chartHeight) {
+    val pathLengths = selectedCharts.map {
+        animateIntAsState(if (it) data.x.size else 1, animSpecYInt).value
+    }
+    val sourcePaths = remember(data, canvasSize, chartHeight, pathLengths) {
         if (canvasSize == Size.Zero) null
-        else data.getOffsets(canvasSize.width, chartHeight).map {
+        else data.getOffsets(canvasSize.width, chartHeight).mapIndexed { i, offsets ->
+            val lastIndex = pathLengths[i]
             Path().apply {
-                it.mapIndexed { i, offset ->
+                offsets.mapIndexed { i, offset ->
+                    if (i == lastIndex) return@apply
                     if (i == 0) moveTo(offset.x, offset.y)
                     else lineTo(offset.x, offset.y)
                 }
