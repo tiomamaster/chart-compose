@@ -3,8 +3,7 @@
 package com.gmail.tiomamaster.chart.compose
 
 import androidx.compose.foundation.background
-import androidx.compose.foundation.gestures.detectHorizontalDragGestures
-import androidx.compose.foundation.gestures.detectTapGestures
+import androidx.compose.foundation.gestures.*
 import androidx.compose.foundation.layout.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
@@ -15,7 +14,7 @@ import androidx.compose.ui.unit.dp
 import kotlin.math.roundToInt
 
 @Composable
-fun ChartWithPreview(
+fun MultitouchChart(
     modifier: Modifier = Modifier,
     data: ChartData<*, *>,
     xLabelsFormatter: (xValue: Number) -> String,
@@ -23,8 +22,8 @@ fun ChartWithPreview(
 ) = BoxWithConstraints(modifier) {
     val widthPx = maxWidth.toPx()
     val bigChartPaddingEnd = 16.dp
-    val bigChartWidthPx = widthPx - bigChartPaddingEnd.toPx()
-    val bigChartHeight = this@BoxWithConstraints.maxHeight * 4 / 6
+    val chartWidthPx = widthPx - bigChartPaddingEnd.toPx()
+    val chartHeight = this@BoxWithConstraints.maxHeight * 4 / 6
     val labelsSize = 14.dp
     val yLabelsStartPadding = 16.dp
     val xLabelsTopPadding = 2.dp
@@ -33,10 +32,26 @@ fun ChartWithPreview(
     }
 
     Column {
-        var leftBound by remember { mutableStateOf(0f) }
-        var rightBound by remember { mutableStateOf(bigChartWidthPx) }
         var tapXCoord by remember { mutableStateOf(-1f) }
         var isDetailsVisible by remember { mutableStateOf(false) }
+        var scale by remember { mutableStateOf(1f) }
+        val range = chartWidthPx / scale
+        val maxOffset = (chartWidthPx - range) / 2
+        var offset by remember { mutableStateOf(0f) }
+        val scrollableState = rememberScrollableState {
+            offset = (offset - it / scale).coerceIn(-maxOffset, maxOffset)
+            it
+        }
+        val transformableState = rememberTransformableState { zoomChange, _, _ ->
+            // TODO: make max scale adjustable or calculate it according to data
+            scale = (scale * zoomChange).coerceIn(1f, 15f)
+            offset = offset.coerceIn(-maxOffset, maxOffset)
+        }
+        val (leftBound, rightBound) = remember(range, offset) {
+            isDetailsVisible = false
+            (((chartWidthPx - range) / 2) + offset).coerceAtLeast(0f) to
+                    ((range + ((chartWidthPx - range) / 2)) + offset).coerceAtMost(chartWidthPx)
+        }
         val selectedCharts = remember { mutableStateListOf(*Array(data.colors.size) { true }) }
         val selectedColors by remember { derivedStateOf { data.colors.selected(selectedCharts) } }
         val selectedLabels by remember { derivedStateOf { data.labels.selected(selectedCharts) } }
@@ -46,19 +61,13 @@ fun ChartWithPreview(
                 Modifier
                     .fillMaxWidth()
                     .padding(end = bigChartPaddingEnd)
-                    .height(bigChartHeight)
+                    .height(chartHeight)
+                    .scrollable(scrollableState, Orientation.Horizontal)
+                    .transformable(transformableState)
                     .pointerInput(Unit) {
-                        detectTapGestures { offset ->
-                            tapXCoord = offset.x
-                            isDetailsVisible = true
-                        }
-                    }
-                    .pointerInput(Unit) {
-                        detectHorizontalDragGestures(
-                            onHorizontalDrag = { change, dragAmount ->
-                                if (tapXCoord == -1f) tapXCoord = change.position.x
-                                val new = tapXCoord + dragAmount
-                                tapXCoord = new.coerceIn(0f, bigChartWidthPx)
+                        detectTapGestures(
+                            onTap = {
+                                tapXCoord = it.x
                                 isDetailsVisible = true
                             }
                         )
@@ -73,7 +82,7 @@ fun ChartWithPreview(
             val detailsData = tapXCoord.takeUnless { it == -1f }
                 ?.let { data.getDetailsForCoord(it, xDetailsFormatter) }
             ChartTouchDetails(
-                bigChartHeight - labelsSize - xLabelsTopPadding,
+                chartHeight - labelsSize - xLabelsTopPadding,
                 isDetailsVisible,
                 detailsData?.xCoord?.roundToInt() ?: (widthPx / 2).roundToInt(),
                 widthPx.roundToInt(),
@@ -89,31 +98,13 @@ fun ChartWithPreview(
 
         Spacer(Modifier.height(16.dp))
 
-        val chartPreviewData = remember { data.copy() }
-        ChartPreview(
-            Modifier
-                .height(bigChartHeight / 5)
-                .fillMaxWidth()
-                .padding(start = 16.dp, end = 16.dp),
-            chartPreviewData,
-            selectedCharts,
-            widthPx - 32.dp.toPx(),
-            bigChartWidthPx
-        ) { left, right ->
-            leftBound = left.toInt().toFloat()
-            rightBound = right.roundToInt().toFloat()
-            isDetailsVisible = false
-        }
-
-        Spacer(Modifier.height(16.dp))
-
         ChartSelectors(data, selectedCharts)
     }
 }
 
 @Preview
 @Composable
-private fun ChartWithPreviewPreview() = ChartWithPreview(
+private fun TouchChartPreview() = MultitouchChart(
     Modifier
         .background(Color.White)
         .padding(top = 16.dp, bottom = 16.dp),
