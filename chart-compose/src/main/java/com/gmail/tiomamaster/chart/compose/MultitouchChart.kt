@@ -11,6 +11,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import kotlin.math.absoluteValue
 import kotlin.math.roundToInt
 
 @Composable
@@ -34,23 +35,27 @@ fun MultitouchChart(
     Column {
         var tapXCoord by remember { mutableStateOf(-1f) }
         var isDetailsVisible by remember { mutableStateOf(false) }
+
+        // TODO: make min and max scale adjustable or calculate them according to data
+        val minScale = 0.75f
+        val maxScale = 15f
         var scale by remember { mutableStateOf(1f) }
         val range = chartWidthPx / scale
-        val maxOffset = (chartWidthPx - range) / 2
-        var offset by remember { mutableStateOf(0f) }
+        val startOffset = chartWidthPx / 2
+        val maxOffset = ((chartWidthPx - range).absoluteValue / 2 + startOffset / scale).absoluteValue
+        var offset by remember { mutableStateOf(startOffset) }
         val scrollableState = rememberScrollableState {
             offset = (offset - it / scale).coerceIn(-maxOffset, maxOffset)
             it
         }
         val transformableState = rememberTransformableState { zoomChange, _, _ ->
-            // TODO: make max scale adjustable or calculate it according to data
-            scale = (scale * zoomChange).coerceIn(1f, 15f)
+            scale = (scale * zoomChange).coerceIn(minScale, maxScale)
             offset = offset.coerceIn(-maxOffset, maxOffset)
         }
         val (leftBound, rightBound) = remember(range, offset) {
             isDetailsVisible = false
-            (((chartWidthPx - range) / 2) + offset).coerceAtLeast(0f) to
-                    ((range + ((chartWidthPx - range) / 2)) + offset).coerceAtMost(chartWidthPx)
+            (((chartWidthPx - range) / 2) + offset) to
+                    ((range + ((chartWidthPx - range) / 2)) + offset)
         }
         val selectedCharts = remember { mutableStateListOf(*Array(data.colors.size) { true }) }
         val selectedColors by remember { derivedStateOf { data.colors.selected(selectedCharts) } }

@@ -27,7 +27,12 @@ data class ChartData<X, Y>(
     private val xMin get() = x.first()
     private val xMax get() = x.last()
     private val X.xCoord get() = width - (xMax - this).toFloat() * (width / (xMax - xMin).toFloat())
-    private val Float.indexOfCoord get() = (this * xBounded.lastIndex / width).roundToInt()
+    private val Float.indexOfCoord
+        get() = ((this - translateX.coerceAtLeast(0f)) * xBounded.lastIndex /
+                (width - ((width - translateX) / scaleX - width).coerceAtLeast(0f)
+                        * scaleX - translateX.coerceAtLeast(0f)))
+            .roundToInt()
+            .coerceIn(0, xBounded.lastIndex)
 
     private var scaleX = 1f
     private var translateX = 0f
@@ -69,8 +74,8 @@ data class ChartData<X, Y>(
         leftBound: Float,
         rightBound: Float
     ): Transforms {
-        val leftBoundInd = (x.lastIndex * leftBound / width).toInt()
-        val rightBoundInd = (x.lastIndex * rightBound / width).roundToInt()
+        val leftBoundInd = (x.lastIndex * leftBound / width).toInt().coerceAtLeast(0)
+        val rightBoundInd = (x.lastIndex * rightBound / width).roundToInt().coerceAtMost(x.lastIndex)
 
         yBounded = y.selected(selectedCharts).map { it.subList(leftBoundInd, rightBoundInd + 1) }
         xBounded = x.subList(leftBoundInd, rightBoundInd + 1)
