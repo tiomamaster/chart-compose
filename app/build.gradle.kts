@@ -1,22 +1,16 @@
 plugins {
-    id("com.android.application")
-    kotlin("android")
+    alias(libs.plugins.android.application)
+    alias(libs.plugins.compose.compiler)
 }
 
-dependencies {
-    implementation(project(":chart-compose"))
-    implementation("androidx.appcompat:appcompat:1.5.1")
-    implementation("androidx.activity:activity-compose:1.6.1")
-    implementation("androidx.compose.foundation:foundation:1.3.0")
-    implementation("com.google.code.gson:gson:2.8.9")
-}
+configure<com.android.build.api.dsl.ApplicationExtension> {
+    namespace = "com.gmail.tiomamaster.chart"
+    compileSdk = 37
 
-android {
-    compileSdk = 33
     defaultConfig {
         applicationId = "com.gmail.tiomamaster.chart"
-        minSdk = 21
-        targetSdk = 33
+        minSdk = 23
+        targetSdk = 37
         versionCode = 1
         versionName = "0.1"
         vectorDrawables {
@@ -26,29 +20,33 @@ android {
 
     buildTypes {
         release {
-            isMinifyEnabled = true
+            isMinifyEnabled = false
+            isShrinkResources = false
+            proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"))
         }
     }
 
     compileOptions {
-        sourceCompatibility = JavaVersion.VERSION_1_8
-        targetCompatibility = JavaVersion.VERSION_1_8
-    }
-    kotlinOptions {
-        jvmTarget = "1.8"
+        sourceCompatibility = JavaVersion.VERSION_17
+        targetCompatibility = JavaVersion.VERSION_17
     }
 
     buildFeatures {
         compose = true
     }
 
-    composeOptions {
-        kotlinCompilerExtensionVersion = "1.3.2"
-    }
-
-    packagingOptions {
+    packaging {
         resources {
             excludes += "/META-INF/{AL2.0,LGPL2.1}"
         }
     }
+}
+
+dependencies {
+    implementation(project(":chart-compose"))
+    implementation(libs.androidx.appcompat)
+    implementation(libs.androidx.activity.compose)
+    implementation(platform(libs.androidx.compose.bom))
+    implementation(libs.androidx.compose.foundation)
+    implementation(libs.gson)
 }

@@ -1,49 +1,43 @@
 plugins {
-    id("com.android.library")
-    kotlin("android")
+    alias(libs.plugins.android.library)
+    alias(libs.plugins.compose.compiler)
 }
 
-dependencies {
-    implementation("androidx.appcompat:appcompat:1.5.1")
-    val composeVersion = "1.3.0"
-    implementation("androidx.compose.ui:ui:$composeVersion")
-    implementation("androidx.compose.ui:ui-tooling:$composeVersion")
-    implementation("androidx.compose.runtime:runtime:$composeVersion")
-    implementation("androidx.compose.foundation:foundation:$composeVersion")
-}
+configure<com.android.build.api.dsl.LibraryExtension> {
+    namespace = "com.gmail.tiomamaster.chart.compose"
+    compileSdk = 37
 
-android {
-    compileSdk = 33
     defaultConfig {
-        minSdk = 21
-        targetSdk = 33
+        minSdk = 23
     }
 
     buildTypes {
         release {
-            isMinifyEnabled = true
+            isMinifyEnabled = false
         }
     }
 
     compileOptions {
-        sourceCompatibility = JavaVersion.VERSION_1_8
-        targetCompatibility = JavaVersion.VERSION_1_8
-    }
-    kotlinOptions {
-        jvmTarget = "1.8"
+        sourceCompatibility = JavaVersion.VERSION_17
+        targetCompatibility = JavaVersion.VERSION_17
     }
 
     buildFeatures {
         compose = true
     }
 
-    composeOptions {
-        kotlinCompilerExtensionVersion = "1.3.2"
-    }
-
-    packagingOptions {
+    packaging {
         resources {
             excludes += "/META-INF/{AL2.0,LGPL2.1}"
         }
     }
+}
+
+dependencies {
+    implementation(libs.androidx.appcompat)
+    implementation(platform(libs.androidx.compose.bom))
+    implementation(libs.androidx.compose.ui)
+    implementation(libs.androidx.compose.ui.tooling)
+    implementation(libs.androidx.compose.runtime)
+    implementation(libs.androidx.compose.foundation)
 }

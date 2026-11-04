@@ -53,8 +53,8 @@ data class ChartData<X, Y>(
         width = chartWidth
         height = chartHeight
 
-        yMin = y.minOf { it.min() }
-        yMax = y.maxOf { it.max() }
+        yMin = y.minOf { it.minOrNull()!! }
+        yMax = y.maxOf { it.maxOrNull()!! }
         kY = chartHeight / (yMax.toFloat() - yMin.toFloat())
         val xCoordinates = x.run {
             xBounded = this
@@ -75,13 +75,14 @@ data class ChartData<X, Y>(
         rightBound: Float
     ): Transforms {
         val leftBoundInd = (x.lastIndex * leftBound / width).toInt().coerceAtLeast(0)
-        val rightBoundInd = (x.lastIndex * rightBound / width).roundToInt().coerceAtMost(x.lastIndex)
+        val rightBoundInd =
+            (x.lastIndex * rightBound / width).roundToInt().coerceAtMost(x.lastIndex)
 
         yBounded = y.selected(selectedCharts).map { it.subList(leftBoundInd, rightBoundInd + 1) }
         xBounded = x.subList(leftBoundInd, rightBoundInd + 1)
 
-        val curYMin = yBounded.minOf { it.min() }
-        curYMax = yBounded.maxOf { it.max() }
+        val curYMin = yBounded.minOf { it.minOrNull()!! }
+        curYMax = yBounded.maxOf { it.maxOrNull()!! }
         curKY = height / (curYMax - curYMin).toFloat()
 
         scaleX = width / (rightBound - leftBound)
@@ -110,7 +111,7 @@ data class ChartData<X, Y>(
     ): DetailsData {
         var i = touchXCoord.indexOfCoord
         var xCoord = xBounded[i].xCoord * scaleX + translateX
-        while (xCoord < 0 || xCoord > width) {
+        while (xCoord !in 0.0f..width) {
             i = if (xCoord < 0) i + 1
             else i - 1
             xCoord = xBounded[i].xCoord * scaleX + translateX
@@ -154,16 +155,16 @@ data class ChartData<X, Y>(
     internal data class XLabel(val coord: Float, val offset: Float, val text: String)
 
     private fun Paint.calcLabelOffset(text: String, rect: Rect): Float {
-        getTextBounds(text, 0, text.lastIndex, rect)
+        getTextBounds(text, 0, text.length, rect)
         return rect.width().toFloat() / 2
     }
 
     private operator fun Number.minus(other: Number): Number {
         return when (this) {
-            is Float -> this.toFloat() - other.toFloat()
-            is Double -> this.toDouble() - other.toDouble()
-            is Int -> this.toInt() - other.toInt()
-            is Long -> this.toLong() - other.toLong()
+            is Float -> this - other.toFloat()
+            is Double -> this - other.toDouble()
+            is Int -> this - other.toInt()
+            is Long -> this - other.toLong()
             else -> throw UnsupportedOperationException(
                 "${this::class} is not supported. Only Float, Double, Int and Long are supported " +
                         "for ChartData.x and ChartData.y values"
@@ -173,10 +174,10 @@ data class ChartData<X, Y>(
 
     private operator fun Number.plus(other: Number): Number {
         return when (this) {
-            is Float -> this.toFloat() + other.toFloat()
-            is Double -> this.toDouble() + other.toDouble()
-            is Int -> this.toInt() + other.toInt()
-            is Long -> this.toLong() + other.toLong()
+            is Float -> this + other.toFloat()
+            is Double -> this + other.toDouble()
+            is Int -> this + other.toInt()
+            is Long -> this + other.toLong()
             else -> throw UnsupportedOperationException(
                 "${this::class} is not supported. Only Float, Double, Int and Long are supported " +
                         "for ChartData.x and ChartData.y values"
@@ -186,10 +187,10 @@ data class ChartData<X, Y>(
 
     private operator fun Number.div(other: Number): Number {
         return when (this) {
-            is Float -> this.toFloat() / other.toFloat()
-            is Double -> this.toDouble() / other.toDouble()
-            is Int -> this.toInt() / other.toInt()
-            is Long -> this.toLong() / other.toLong()
+            is Float -> this / other.toFloat()
+            is Double -> this / other.toDouble()
+            is Int -> this / other.toInt()
+            is Long -> this / other.toLong()
             else -> throw UnsupportedOperationException(
                 "${this::class} is not supported. Only Float, Double, Int and Long are supported " +
                         "for ChartData.x and ChartData.y values"
@@ -199,10 +200,10 @@ data class ChartData<X, Y>(
 
     private operator fun Number.times(other: Number): Number {
         return when (this) {
-            is Float -> this.toFloat() * other.toFloat()
-            is Double -> this.toDouble() * other.toDouble()
-            is Int -> this.toInt() * other.toInt()
-            is Long -> this.toLong() * other.toLong()
+            is Float -> this * other.toFloat()
+            is Double -> this * other.toDouble()
+            is Int -> this * other.toInt()
+            is Long -> this * other.toLong()
             else -> throw UnsupportedOperationException(
                 "${this::class} is not supported. Only Float, Double, Int and Long are supported " +
                         "for ChartData.x and ChartData.y values"

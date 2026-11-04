@@ -9,6 +9,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
+import androidx.core.graphics.toColorInt
 import com.gmail.tiomamaster.chart.compose.ChartData
 import com.gmail.tiomamaster.chart.compose.MultitouchChart
 import com.google.gson.Gson
@@ -31,14 +32,16 @@ class MainActivity : ComponentActivity() {
             )
         }
 
-        val x = (sampleData.columns!![0] as Iterable<*>).drop(1) as List<Long>
-        val y = sampleData.columns.drop(1).map { (it as Iterable<*>).drop(1) as List<Long> }
+        val x = (sampleData.columns!![0] as Iterable<*>).drop(1).map { (it as Number).toLong() }
+        val y = sampleData.columns.drop(1).map { column ->
+            (column as Iterable<*>).drop(1).map { (it as Number).toLong() }
+        }
         val colors = listOfNotNull(
             sampleData.colors?.y0,
             sampleData.colors?.y1,
             sampleData.colors?.y2,
             sampleData.colors?.y3
-        ).map { Color(android.graphics.Color.parseColor(it)) }
+        ).map { Color(it.toColorInt()) }
         val labels = listOfNotNull(
             sampleData.names?.y0,
             sampleData.names?.y1,
