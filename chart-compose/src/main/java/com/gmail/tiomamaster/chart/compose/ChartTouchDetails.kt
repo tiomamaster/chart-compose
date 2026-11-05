@@ -33,7 +33,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicText
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
@@ -98,7 +98,7 @@ internal fun ChartTouchDetails(
             )
         }
 
-        var infoOffset by remember { mutableStateOf(0) }
+        var infoOffset by remember { mutableIntStateOf(0) }
         Column(
             Modifier
                 .offset { IntOffset(infoOffset, 0) }

@@ -3,9 +3,28 @@
 package com.gmail.tiomamaster.chart.compose
 
 import androidx.compose.foundation.background
-import androidx.compose.foundation.gestures.*
-import androidx.compose.foundation.layout.*
-import androidx.compose.runtime.*
+import androidx.compose.foundation.gestures.Orientation
+import androidx.compose.foundation.gestures.detectTapGestures
+import androidx.compose.foundation.gestures.rememberScrollableState
+import androidx.compose.foundation.gestures.rememberTransformableState
+import androidx.compose.foundation.gestures.scrollable
+import androidx.compose.foundation.gestures.transformable
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.IntrinsicSize
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.derivedStateOf
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableFloatStateOf
+import androidx.compose.runtime.mutableStateListOf
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.pointer.pointerInput
@@ -33,29 +52,31 @@ fun MultitouchChart(
     }
 
     Column {
-        var tapXCoord by remember { mutableStateOf(-1f) }
+        var tapXCoord by remember { mutableFloatStateOf(-1f) }
         var isDetailsVisible by remember { mutableStateOf(false) }
 
         // TODO: make min and max scale adjustable or calculate them according to data
         val minScale = 0.75f
         val maxScale = 15f
-        var scale by remember { mutableStateOf(1f) }
+        var scale by remember { mutableFloatStateOf(1f) }
         val range = chartWidthPx / scale
         val startOffset = chartWidthPx / 2
-        val maxOffset = ((chartWidthPx - range).absoluteValue / 2 + startOffset / scale).absoluteValue
-        var offset by remember { mutableStateOf(startOffset) }
+        val maxOffset =
+            ((chartWidthPx - range).absoluteValue / 2 + startOffset / scale).absoluteValue
+        var offset by remember { mutableFloatStateOf(startOffset) }
         val scrollableState = rememberScrollableState {
             offset = (offset - it / scale).coerceIn(-maxOffset, maxOffset)
             it
         }
-        val transformableState = rememberTransformableState { zoomChange, _, _ ->
+        val transformableState = rememberTransformableState { _, zoomChange, _, _ ->
             scale = (scale * zoomChange).coerceIn(minScale, maxScale)
             offset = offset.coerceIn(-maxOffset, maxOffset)
         }
         val (leftBound, rightBound) = remember(range, offset) {
             isDetailsVisible = false
-            (((chartWidthPx - range) / 2) + offset) to
-                    ((range + ((chartWidthPx - range) / 2)) + offset)
+            ((((chartWidthPx - range) / 2) + offset) to
+                    ((range + ((chartWidthPx - range) / 2)) + offset))
+
         }
         val selectedCharts = remember { mutableStateListOf(*Array(data.colors.size) { true }) }
         val selectedColors by remember { derivedStateOf { data.colors.selected(selectedCharts) } }
@@ -67,8 +88,8 @@ fun MultitouchChart(
                     .fillMaxWidth()
                     .padding(end = bigChartPaddingEnd)
                     .height(chartHeight)
-                    .scrollable(scrollableState, Orientation.Horizontal)
                     .transformable(transformableState)
+                    .scrollable(scrollableState, Orientation.Horizontal)
                     .pointerInput(Unit) {
                         detectTapGestures(
                             onTap = {

@@ -5,8 +5,22 @@ package com.gmail.tiomamaster.chart.compose
 import androidx.compose.foundation.background
 import androidx.compose.foundation.gestures.detectHorizontalDragGestures
 import androidx.compose.foundation.gestures.detectTapGestures
-import androidx.compose.foundation.layout.*
-import androidx.compose.runtime.*
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.IntrinsicSize
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.derivedStateOf
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableFloatStateOf
+import androidx.compose.runtime.mutableStateListOf
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.pointer.pointerInput
@@ -33,9 +47,9 @@ fun ChartWithPreview(
     }
 
     Column {
-        var leftBound by remember { mutableStateOf(0f) }
-        var rightBound by remember { mutableStateOf(bigChartWidthPx) }
-        var tapXCoord by remember { mutableStateOf(-1f) }
+        var leftBound by remember { mutableFloatStateOf(0f) }
+        var rightBound by remember { mutableFloatStateOf(bigChartWidthPx) }
+        var tapXCoord by remember { mutableFloatStateOf(-1f) }
         var isDetailsVisible by remember { mutableStateOf(false) }
         val selectedCharts = remember { mutableStateListOf(*Array(data.colors.size) { true }) }
         val selectedColors by remember { derivedStateOf { data.colors.selected(selectedCharts) } }
