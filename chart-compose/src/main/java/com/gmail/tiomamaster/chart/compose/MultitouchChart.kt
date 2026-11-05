@@ -38,7 +38,9 @@ fun MultitouchChart(
     modifier: Modifier = Modifier,
     data: ChartData<*, *>,
     xLabelsFormatter: (xValue: Number) -> String,
-    xDetailsFormatter: (xValue: Number) -> String
+    xDetailsFormatter: (xValue: Number) -> String,
+    minPointsOnChart: Int = 5,
+    startOffsetPercent: Int = 25
 ) = BoxWithConstraints(modifier) {
     val widthPx = maxWidth.toPx()
     val bigChartPaddingEnd = 16.dp
@@ -55,27 +57,30 @@ fun MultitouchChart(
         var tapXCoord by remember { mutableFloatStateOf(-1f) }
         var isDetailsVisible by remember { mutableStateOf(false) }
 
-        // TODO: make min and max scale adjustable or calculate them according to data
-        val minScale = 0.75f
-        val maxScale = 15f
+        val minScale = 1f
+        val maxScale = remember(data.x.size, minPointsOnChart) {
+            (data.x.size.toFloat() / minPointsOnChart.coerceAtLeast(2))
+                .coerceAtLeast(minScale)
+        }
         var scale by remember { mutableFloatStateOf(1f) }
         val range = chartWidthPx / scale
-        val startOffset = chartWidthPx / 2
+        val startOffsetPx = chartWidthPx / (100f / startOffsetPercent)
+        val minOffset = (range - chartWidthPx) / 2
         val maxOffset =
-            ((chartWidthPx - range).absoluteValue / 2 + startOffset / scale).absoluteValue
-        var offset by remember { mutableFloatStateOf(startOffset) }
+            ((chartWidthPx - range).absoluteValue / 2 + startOffsetPx / scale).absoluteValue
+        var offset by remember { mutableFloatStateOf(startOffsetPx) }
         val scrollableState = rememberScrollableState {
-            offset = (offset - it / scale).coerceIn(-maxOffset, maxOffset)
+            offset = (offset - it / scale).coerceIn(minOffset, maxOffset)
             it
         }
         val transformableState = rememberTransformableState { _, zoomChange, _, _ ->
             scale = (scale * zoomChange).coerceIn(minScale, maxScale)
-            offset = offset.coerceIn(-maxOffset, maxOffset)
+            offset = offset.coerceIn(minOffset, maxOffset)
         }
         val (leftBound, rightBound) = remember(range, offset) {
             isDetailsVisible = false
-            ((((chartWidthPx - range) / 2) + offset) to
-                    ((range + ((chartWidthPx - range) / 2)) + offset))
+            (((chartWidthPx - range) / 2) + offset) to
+                    ((range + ((chartWidthPx - range) / 2)) + offset)
 
         }
         val selectedCharts = remember { mutableStateListOf(*Array(data.colors.size) { true }) }
