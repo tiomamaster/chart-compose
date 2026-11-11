@@ -149,7 +149,7 @@ private fun getYLabels(
     animScaleY: Float,
     data: ChartData<*, *>
 ): AnimatedLabels? {
-    if (labelSettings == null) return null
+    if (labelSettings == null || chartHeight <= 0f) return null
     val topMargin = 32.dp.toPx()
     val labelsCount = 5
     var oldTranslateY by remember { mutableFloatStateOf(transforms?.translateY ?: 0f) }
@@ -206,7 +206,7 @@ private fun getXLabels(
     animScaleX: Float,
     data: ChartData<*, *>
 ): AnimatedLabels? {
-    if (labelSettings == null) return null
+    if (labelSettings == null || canvasSize == Size.Zero || chartWidth <= 1f) return null
     var labelsAppear: List<AnimatedLabel> by remember { mutableStateOf(emptyList()) }
     var labelsDisappear: List<AnimatedLabel> by remember { mutableStateOf(emptyList()) }
     var changeAlpha by remember { mutableStateOf(true) }
@@ -229,7 +229,7 @@ private fun getXLabels(
                 val lineCoord = chartStart + it.coord * animScaleX + animTranslateX
                 AnimatedLabel(lineCoord - it.offset, lineCoord, it.text)
             }.also {
-                if (labelsAppear.size != it.size && it.isNotEmpty()) {
+                if (labelsAppear.isNotEmpty() && labelsAppear.size != it.size) {
                     paintAppear.alpha = 0
                     paintDisappear.alpha = 255
                     changeAlpha = !changeAlpha
@@ -337,9 +337,18 @@ private fun DrawScope.drawLabels(
                 yLabels.paintAppear
             )
         }
-        withTransform({
-            clipRect(left = chartStart)
-        }) {
+        if (chartStart > 0f) {
+            withTransform({
+                clipRect(left = chartStart, bottom = size.height + 100f)
+            }) {
+                xLabels?.labelsDisappear?.forEach {
+                    drawText(it.text, it.coord, size.height, xLabels.paintDisappear)
+                }
+                xLabels?.labelsAppear?.forEach {
+                    drawText(it.text, it.coord, size.height, xLabels.paintAppear)
+                }
+            }
+        } else {
             xLabels?.labelsDisappear?.forEach {
                 drawText(it.text, it.coord, size.height, xLabels.paintDisappear)
             }
