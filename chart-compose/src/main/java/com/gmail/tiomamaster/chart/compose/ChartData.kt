@@ -17,8 +17,8 @@ data class ChartData<X, Y>(
     private var height = 0f
     private lateinit var yBounded: List<List<Y>>
     private lateinit var xBounded: List<X>
-    private lateinit var yMin: Y
-    private lateinit var yMax: Y
+    private val yMin: Y = y.minOf { it.minOrNull()!! }
+    val yMax: Y = y.maxOf { it.maxOrNull()!! }
     private lateinit var curYMax: Y
     private var kY = 0f
     private var curKY = 0f
@@ -53,8 +53,6 @@ data class ChartData<X, Y>(
         width = chartWidth
         height = chartHeight
 
-        yMin = y.minOf { it.minOrNull()!! }
-        yMax = y.maxOf { it.maxOrNull()!! }
         kY = chartHeight / (yMax.toFloat() - yMin.toFloat())
         val xCoordinates = x.run {
             xBounded = this

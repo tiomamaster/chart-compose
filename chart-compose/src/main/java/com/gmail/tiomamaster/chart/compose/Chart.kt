@@ -43,7 +43,7 @@ private val chartPaint = Paint().apply {
     strokeWidth = chartStrokeWidth
 }
 
-private var labelsPaint: Paint = Paint().apply {
+var labelsPaint: Paint = Paint().apply {
     isAntiAlias = true
     isDither = true
     color = android.graphics.Color.GRAY
@@ -56,7 +56,8 @@ internal fun Chart(
     selectedCharts: List<Boolean>,
     leftBound: Float,
     rightBound: Float,
-    labelSettings: LabelSettings? = null
+    labelSettings: LabelSettings? = null,
+    chartStart: Float = 0f
 ) {
     var canvasSize by remember { mutableStateOf(Size.Zero) }
     val xLabelsHeight = labelSettings?.run { (labelsSize + xLabelsTopPadding).toPx() } ?: 0f
@@ -66,9 +67,14 @@ internal fun Chart(
     val pathLengths = selectedCharts.map {
         animateIntAsState(if (it) data.x.size else 1, animSpecYInt).value
     }
-    val sourcePaths = remember(data, canvasSize, chartHeight, pathLengths) {
+
+    val chartWidth = remember(canvasSize.width, chartStart) {
+        (canvasSize.width - chartStart).coerceAtLeast(1f)
+    }
+
+    val sourcePaths = remember(data, canvasSize, chartHeight, pathLengths, chartWidth) {
         if (canvasSize == Size.Zero) null
-        else data.getOffsets(canvasSize.width, chartHeight).mapIndexed { i, offsets ->
+        else data.getOffsets(chartWidth, chartHeight).mapIndexed { i, offsets ->
             val lastIndex = pathLengths[i]
             Path().apply {
                 offsets.mapIndexed { i, offset ->
@@ -90,30 +96,46 @@ internal fun Chart(
     val animScaleX by animateFloatAsState(transforms?.scaleX ?: 1f, animSpecX)
     val animScaleY by animateFloatAsState(transforms?.scaleY ?: 1f, animSpecY)
     val matrix = remember { Matrix() }
-    val paths = remember(sourcePaths, animTranslateX, animTranslateY, animScaleX, animScaleY) {
-        matrix.reset()
-        matrix.setTranslate(animTranslateX, animTranslateY)
-        matrix.preScale(animScaleX, animScaleY)
-        sourcePaths?.map {
-            Path().apply {
-                it.transform(matrix, this)
+    val paths =
+        remember(
+            sourcePaths,
+            animTranslateX,
+            animTranslateY,
+            animScaleX,
+            animScaleY,
+            chartStart
+        ) {
+            matrix.reset()
+            matrix.setTranslate(animTranslateX + chartStart, animTranslateY)
+            matrix.preScale(animScaleX, animScaleY)
+            sourcePaths?.map {
+                Path().apply {
+                    it.transform(matrix, this)
+                }
             }
         }
-    }
     val pathAlphas =
         selectedCharts.map { animateIntAsState(if (it) 255 else 0, animSpecYInt).value }
     labelsPaint.textSize = labelSettings?.labelsSize?.toPx() ?: 0f
     val yLabels =
         getYLabels(labelSettings, transforms, chartHeight, animTranslateY, animScaleY, data)
-    val xLabels = getXLabels(labelSettings, canvasSize, animTranslateX, animScaleX, data)
+    val xLabels = getXLabels(
+        labelSettings,
+        canvasSize,
+        chartStart,
+        chartWidth,
+        animTranslateX,
+        animScaleX,
+        data
+    )
 
     Canvas(modifier) {
         if (canvasSize == Size.Zero) {
             canvasSize = size
         } else {
-            drawLines(yLabels, xLabels, labelSettings)
-            drawPaths(chartHeight, paths, data.colorsArgb, pathAlphas)
-            drawLabels(yLabels, xLabels, labelSettings)
+            drawLines(yLabels, xLabels, labelSettings, chartStart)
+            drawPaths(chartStart, chartHeight, paths, data.colorsArgb, pathAlphas)
+            drawLabels(yLabels, xLabels, labelSettings, chartStart)
         }
     }
 }
@@ -178,6 +200,8 @@ private fun getYLabels(
 private fun getXLabels(
     labelSettings: LabelSettings?,
     canvasSize: Size,
+    chartStart: Float,
+    chartWidth: Float,
     animTranslateX: Float,
     animScaleX: Float,
     data: ChartData<*, *>
@@ -199,61 +223,85 @@ private fun getXLabels(
             alpha = if (changeAlpha) labelsAlpha else 255 - labelsAlpha
         }
     }
-    labelsAppear = remember(labelSettings, canvasSize, animTranslateX, animScaleX) {
-        data.getXLabels(labelsPaint, canvasSize.width, labelSettings.xLabelsFormatter).map {
-            val lineCoord = it.coord * animScaleX + animTranslateX
-            AnimatedLabel(lineCoord - it.offset, lineCoord, it.text)
-        }.also {
-            if (labelsAppear.size != it.size && it.isNotEmpty()) {
-                paintAppear.alpha = 0
-                paintDisappear.alpha = 255
-                changeAlpha = !changeAlpha
-                labelsDisappear = labelsAppear
+    labelsAppear =
+        remember(labelSettings, canvasSize, chartWidth, chartStart, animTranslateX, animScaleX) {
+            data.getXLabels(labelsPaint, chartWidth, labelSettings.xLabelsFormatter).map {
+                val lineCoord = chartStart + it.coord * animScaleX + animTranslateX
+                AnimatedLabel(lineCoord - it.offset, lineCoord, it.text)
+            }.also {
+                if (labelsAppear.size != it.size && it.isNotEmpty()) {
+                    paintAppear.alpha = 0
+                    paintDisappear.alpha = 255
+                    changeAlpha = !changeAlpha
+                    labelsDisappear = labelsAppear
+                }
             }
         }
-    }
     return AnimatedLabels(labelsDisappear, labelsAppear, paintDisappear, paintAppear)
 }
 
 private fun DrawScope.drawLines(
-    yLabels: AnimatedLabels?, xLabels: AnimatedLabels?, labelSettings: LabelSettings?
+    yLabels: AnimatedLabels?,
+    xLabels: AnimatedLabels?,
+    labelSettings: LabelSettings?,
+    chartStart: Float
 ) {
     if (yLabels != null) {
-        drawHorizontalLines(yLabels.labelsDisappear, yLabels.paintDisappear, labelSettings!!)
-        drawHorizontalLines(yLabels.labelsAppear, yLabels.paintAppear, labelSettings)
+        drawHorizontalLines(
+            yLabels.labelsDisappear,
+            yLabels.paintDisappear,
+            labelSettings!!,
+            chartStart
+        )
+        drawHorizontalLines(yLabels.labelsAppear, yLabels.paintAppear, labelSettings, chartStart)
     }
     if (xLabels != null) {
-        drawVerticalLines(xLabels.labelsDisappear, xLabels.paintDisappear, labelSettings!!)
-        drawVerticalLines(xLabels.labelsAppear, xLabels.paintAppear, labelSettings)
+        drawVerticalLines(
+            xLabels.labelsDisappear,
+            xLabels.paintDisappear,
+            labelSettings!!,
+            chartStart
+        )
+        drawVerticalLines(xLabels.labelsAppear, xLabels.paintAppear, labelSettings, chartStart)
     }
 }
 
 private fun DrawScope.drawHorizontalLines(
-    labels: List<AnimatedLabel>, paint: Paint, labelSettings: LabelSettings
+    labels: List<AnimatedLabel>, paint: Paint, labelSettings: LabelSettings, chartStart: Float
 ) = labels.forEach {
+    val startX = if (chartStart > 0f) chartStart else labelSettings.yLabelsStartPadding.toPx()
     drawLine(
         Color.LightGray,
-        Offset(labelSettings.yLabelsStartPadding.toPx(), it.lineCoord),
+        Offset(startX, it.lineCoord),
         Offset(size.width, it.lineCoord),
         alpha = paint.alpha / 255f
     )
 }
 
 private fun DrawScope.drawVerticalLines(
-    labels: List<AnimatedLabel>, paint: Paint, labelSettings: LabelSettings
+    labels: List<AnimatedLabel>, paint: Paint, labelSettings: LabelSettings, chartStart: Float
 ) = labels.forEach {
-    drawLine(
-        Color.LightGray, Offset(it.lineCoord, 0f), Offset(
-            it.lineCoord,
-            size.height - labelSettings.labelsSize.toPx() - labelSettings.xLabelsTopPadding.toPx()
-        ), alpha = paint.alpha / 255f
-    )
+    if (it.lineCoord >= chartStart - 1f && it.lineCoord <= size.width + 1f) {
+        drawLine(
+            Color.LightGray, Offset(it.lineCoord, 0f), Offset(
+                it.lineCoord,
+                size.height - labelSettings.labelsSize.toPx() - labelSettings.xLabelsTopPadding.toPx()
+            ), alpha = paint.alpha / 255f
+        )
+    }
 }
 
 private fun DrawScope.drawPaths(
-    chartHeight: Float, paths: List<Path>?, colors: List<Int>, alphas: List<Int>
+    chartStart: Float,
+    chartHeight: Float,
+    paths: List<Path>?,
+    colors: List<Int>,
+    alphas: List<Int>
 ) = withTransform({
-    clipRect(bottom = chartHeight + chartStrokeWidth)
+    clipRect(
+        left = chartStart,
+        bottom = chartHeight + chartStrokeWidth
+    )
     inset(0f, chartStrokeWidth / 2, 0f, chartStrokeWidth / 2)
 }) {
     drawIntoCanvas {
@@ -267,7 +315,10 @@ private fun DrawScope.drawPaths(
 }
 
 private fun DrawScope.drawLabels(
-    yLabels: AnimatedLabels?, xLabels: AnimatedLabels?, labelSettings: LabelSettings?
+    yLabels: AnimatedLabels?,
+    xLabels: AnimatedLabels?,
+    labelSettings: LabelSettings?,
+    chartStart: Float
 ) = drawIntoCanvas { c ->
     with(c.nativeCanvas) {
         yLabels?.labelsDisappear?.forEach {
@@ -280,14 +331,21 @@ private fun DrawScope.drawLabels(
         }
         yLabels?.labelsAppear?.forEach {
             drawText(
-                it.text, labelSettings!!.yLabelsStartPadding.toPx(), it.coord, yLabels.paintAppear
+                it.text,
+                labelSettings!!.yLabelsStartPadding.toPx(),
+                it.coord,
+                yLabels.paintAppear
             )
         }
-        xLabels?.labelsDisappear?.forEach {
-            drawText(it.text, it.coord, size.height, xLabels.paintDisappear)
-        }
-        xLabels?.labelsAppear?.forEach {
-            drawText(it.text, it.coord, size.height, xLabels.paintAppear)
+        withTransform({
+            clipRect(left = chartStart)
+        }) {
+            xLabels?.labelsDisappear?.forEach {
+                drawText(it.text, it.coord, size.height, xLabels.paintDisappear)
+            }
+            xLabels?.labelsAppear?.forEach {
+                drawText(it.text, it.coord, size.height, xLabels.paintAppear)
+            }
         }
     }
 }

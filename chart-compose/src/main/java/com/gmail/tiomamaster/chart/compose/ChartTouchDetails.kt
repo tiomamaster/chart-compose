@@ -54,7 +54,7 @@ internal fun ChartTouchDetails(
     height: Dp,
     visible: Boolean,
     offset: Int,
-    chartWidth: Int,
+    outerViewFullWidth: Int,
     title: String,
     colors: List<Color>,
     labels: List<String>,
@@ -105,7 +105,7 @@ internal fun ChartTouchDetails(
                 .alpha(animatedAlpha)
                 .onSizeChanged {
                     infoOffset =
-                        (it.width / -2).coerceIn(-offset, chartWidth - it.width - offset)
+                        (it.width / -2).coerceIn(-offset, outerViewFullWidth - it.width - offset)
                 }
                 .background(Color.White)
                 .border(Dp.Hairline, Color.Black, RoundedCornerShape(4.dp))

@@ -51,18 +51,36 @@ fun MultitouchChart(
     xLabelsFormatter: (xValue: Number) -> String,
     xDetailsFormatter: (xValue: Number) -> String,
     minPointsOnChart: Int = 5,
-    startOffsetPercent: Int = 25
+    startOffsetPercent: Int = 25,
+    yLabelsOverlapChart: Boolean = true
 ) = BoxWithConstraints(modifier) {
-    val widthPx = maxWidth.toPx()
-    val bigChartPaddingEnd = 16.dp
-    val chartWidthPx = widthPx - bigChartPaddingEnd.toPx()
-    val chartHeight = this@BoxWithConstraints.maxHeight * 4 / 6
     val labelsSize = 14.dp
-    val yLabelsStartPadding = 16.dp
+    val yLabelsStartPadding = 8.dp
+    val yLabelsStartPaddingPx = yLabelsStartPadding.toPx()
+    val yLabelsEndPadding = 8.dp
+    val yLabelsEndPaddingPx = yLabelsEndPadding.toPx()
     val xLabelsTopPadding = 2.dp
     val labelSettings = remember {
         LabelSettings(labelsSize, yLabelsStartPadding, xLabelsTopPadding, xLabelsFormatter)
     }
+
+    labelsPaint.textSize = labelsSize.toPx()
+    val chartStartPx = remember(
+        data,
+        yLabelsOverlapChart
+    ) {
+        if (yLabelsOverlapChart) {
+            0f
+        } else {
+            val maxTextWidth = labelsPaint.measureText(data.yMax.toString())
+            maxTextWidth + yLabelsStartPaddingPx + yLabelsEndPaddingPx
+        }
+    }
+
+    val widthPx = maxWidth.toPx()
+    val chartPaddingEnd = 16.dp
+    val chartWidthPx = widthPx - chartPaddingEnd.toPx() - chartStartPx
+    val chartHeight = this@BoxWithConstraints.maxHeight * 4 / 6
 
     Column {
         var tapXCoord by remember { mutableFloatStateOf(-1f) }
@@ -75,16 +93,17 @@ fun MultitouchChart(
         }
         val scale = remember { mutableFloatStateOf(1f) }
         val range = chartWidthPx / scale.floatValue
-        val startOffsetPx = chartWidthPx / (100f / startOffsetPercent)
+        val startOffsetPx = chartWidthPx * (startOffsetPercent / 100f)
 
         val decay = rememberSplineBasedDecay<Float>()
         val offsetAnimatable = remember { Animatable(startOffsetPx) }
         val offset = offsetAnimatable.value
 
-        val (leftBound, rightBound) = remember(range, offset) {
+        val (leftBound, rightBound) = remember(chartWidthPx, range, offset) {
             isDetailsVisible = false
-            (((chartWidthPx - range) / 2) + offset) to
-                    ((range + ((chartWidthPx - range) / 2)) + offset)
+            val left = (chartWidthPx - range) / 2 + offset
+            val right = left + range
+            left to right
         }
         val selectedCharts = remember { mutableStateListOf(*Array(data.colors.size) { true }) }
         val selectedColors by remember { derivedStateOf { data.colors.selected(selectedCharts) } }
@@ -94,12 +113,13 @@ fun MultitouchChart(
             Chart(
                 Modifier
                     .fillMaxWidth()
-                    .padding(end = bigChartPaddingEnd)
+                    .padding(end = chartPaddingEnd)
                     .height(chartHeight)
                     .pointerInput(Unit) {
                         detectTapGestures(
                             onTap = {
-                                tapXCoord = it.x
+                                tapXCoord = if (it.x < chartStartPx) 0f
+                                else it.x - chartStartPx
                                 isDetailsVisible = true
                             }
                         )
@@ -117,7 +137,8 @@ fun MultitouchChart(
                 selectedCharts,
                 leftBound,
                 rightBound,
-                labelSettings
+                labelSettings,
+                chartStartPx
             )
 
             val detailsData = tapXCoord.takeUnless { it == -1f }
@@ -125,7 +146,8 @@ fun MultitouchChart(
             ChartTouchDetails(
                 chartHeight - labelsSize - xLabelsTopPadding,
                 isDetailsVisible,
-                detailsData?.xCoord?.roundToInt() ?: (widthPx / 2).roundToInt(),
+                detailsData?.xCoord?.plus(chartStartPx)?.roundToInt()
+                    ?: (widthPx / 2 + chartStartPx).roundToInt(),
                 widthPx.roundToInt(),
                 detailsData?.title ?: "",
                 selectedColors,
