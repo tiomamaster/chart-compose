@@ -83,20 +83,20 @@ fun MultitouchChart(
     val chartHeight = this@BoxWithConstraints.maxHeight * 4 / 6
 
     Column {
-        var tapXCoord by remember { mutableFloatStateOf(-1f) }
-        var isDetailsVisible by remember { mutableStateOf(false) }
+        var tapXCoord by remember(data) { mutableFloatStateOf(-1f) }
+        var isDetailsVisible by remember(data) { mutableStateOf(false) }
 
         val minScale = 1f
         val maxScale = remember(data.x.size, minPointsOnChart) {
             (data.x.size.toFloat() / minPointsOnChart.coerceAtLeast(2))
                 .coerceAtLeast(minScale)
         }
-        val scale = remember { mutableFloatStateOf(1f) }
+        val scale = remember(data) { mutableFloatStateOf(1f) }
         val range = chartWidthPx / scale.floatValue
         val startOffsetPx = chartWidthPx * (startOffsetPercent / 100f)
 
         val decay = rememberSplineBasedDecay<Float>()
-        val offsetAnimatable = remember { Animatable(startOffsetPx) }
+        val offsetAnimatable = remember(data, startOffsetPx) { Animatable(startOffsetPx) }
         val offset = offsetAnimatable.value
 
         val (leftBound, rightBound) = remember(chartWidthPx, range, offset) {
@@ -105,9 +105,16 @@ fun MultitouchChart(
             val right = left + range
             left to right
         }
-        val selectedCharts = remember { mutableStateListOf(*Array(data.colors.size) { true }) }
-        val selectedColors by remember { derivedStateOf { data.colors.selected(selectedCharts) } }
-        val selectedLabels by remember { derivedStateOf { data.labels.selected(selectedCharts) } }
+        val selectedCharts =
+            remember(data) { mutableStateListOf(*Array(data.colors.size) { true }) }
+        val selectedColors by remember(
+            data,
+            selectedCharts
+        ) { derivedStateOf { data.colors.selected(selectedCharts) } }
+        val selectedLabels by remember(
+            data,
+            selectedCharts
+        ) { derivedStateOf { data.labels.selected(selectedCharts) } }
 
         Box(Modifier.height(IntrinsicSize.Max)) {
             Chart(
@@ -115,7 +122,7 @@ fun MultitouchChart(
                     .fillMaxWidth()
                     .padding(end = chartPaddingEnd)
                     .height(chartHeight)
-                    .pointerInput(Unit) {
+                    .pointerInput(data) {
                         detectTapGestures(
                             onTap = {
                                 tapXCoord = if (it.x < chartStartPx) 0f
@@ -173,7 +180,7 @@ private fun Modifier.zoomAndScroll(
     chartWidthPx: Float,
     startOffsetPx: Float,
     decay: DecayAnimationSpec<Float>
-) = pointerInput(Unit) {
+) = pointerInput(offsetAnimatable, scale, chartWidthPx, maxScale, startOffsetPx) {
     val velocityTracker = VelocityTracker()
     coroutineScope {
         val scope = this
